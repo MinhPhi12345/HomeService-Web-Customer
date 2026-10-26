@@ -62,6 +62,8 @@ export interface CreateBookingRequest {
   quantity?: number;
   paymentMethod?: PaymentMethod;
   customerPresent?: boolean;
+  /** SĐT để Tasker liên hệ (^0\d{9}$). Bỏ trống: Backend dùng SĐT trong hồ sơ */
+  contactPhone?: string | null;
 }
 
 export interface BookingResponse {
@@ -98,6 +100,8 @@ export interface BookingResponse {
   canReview?: boolean;
   disputeId?: number | null;
   customerPhone?: string | null;
+  /** SĐT liên hệ khách nhập khi đặt đơn */
+  contactPhone?: string | null;
   updatedAt?: string | null;
 }
 
@@ -150,6 +154,7 @@ export interface ProfileResponse {
   role: UserRole;
   outstandingAmount?: number;
   isCashBlocked?: boolean;
+  createdAt?: string;
 }
 export interface UpdateProfileRequest {
   fullName: string;

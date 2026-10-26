@@ -1,31 +1,18 @@
-// US19/US25/US34/US35/US36/US37 - Chi tiết đơn: theo dõi Tasker, xác nhận, khiếu nại, đánh giá, trả nợ
+// US19/US25/US34–US37 – Chi tiết đơn: tiến độ, theo dõi Tasker, xác nhận, khiếu nại, đánh giá, trả nợ
 import { useCallback, useEffect, useState } from "react";
-import { Link, useLocation, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
-import { ArrowLeft, Camera, Star } from "lucide-react";
-import Navbar from "../components/Navbar";
+import { ArrowLeft, Camera, Clock, Flag, Phone, RefreshCw, Star } from "lucide-react";
+import AppShell from "../components/AppShell";
 import OrderActions from "../components/OrderActions";
-import TrackingMap from "../components/TrackingMap";
+import MapView from "../components/MapView";
+import { Toast } from "../components/Modal";
 import { iconForService } from "../components/ServiceIcon";
 import { useNow } from "../hooks/useNow";
-import {
-  bookingService,
-  disputeService,
-  reviewService,
-} from "../services/bookingService";
-import { serviceCatalog } from "../services/serviceCatalog";
+import { bookingService, disputeService, reviewService } from "../services/bookingService";
 import { getErrorMessage } from "../services/api";
-import { isNetworkError } from "../utils/net";
-import { mockOrders, mockTaskerLocation } from "../data/mockOrders";
-import { mockBookingReviews, mockUserReviews } from "../data/mockUser";
-import type {
-  BookingResponse,
-  DisputeDetail,
-  LocationResponse,
-  ReviewItem,
-  UserReviews,
-} from "../types";
-import { formatDateTime, formatVND } from "../utils/format";
+import type { BookingResponse, DisputeDetail, LocationResponse, ReviewItem, UserReviews } from "../types";
+import { formatDateTime, formatPhone, formatTime, formatVND, initials } from "../utils/format";
 import {
   DISPUTE_REASONS,
   DISPUTE_RESOLUTIONS,
@@ -36,37 +23,17 @@ import {
   describe,
   orderCode,
 } from "../utils/booking";
-import "../styles/landing.css";
-import "../styles/app.css";
 
-const STEPS = [
-  "Đã đặt",
-  "Tìm Tasker",
-  "Đã nhận",
-  "Đang làm",
-  "Hoàn thành",
-  "Thanh toán xong",
-];
-const STEP_OF: Record<number, number> = {
-  10: 0,
-  0: 1,
-  1: 1,
-  8: 1,
-  2: 2,
-  3: 3,
-  4: 4,
-  11: 4,
-  13: 4,
-  5: 5,
-};
-const LIVE = [0, 1, 2, 3];
+const STEPS = ["Đã đặt", "Tìm Tasker", "Tasker nhận", "Đang làm", "Hoàn thành", "Đã thanh toán"];
+const STEP_OF: Record<number, number> = { 10: 0, 0: 1, 1: 1, 8: 1, 2: 2, 3: 3, 4: 4, 11: 4, 13: 4, 5: 5 };
+const LIVE = [0, 1, 2, 3, 10];
 
-const Stars = ({ n }: { n: number }) => (
-  <span className="stars-inline" aria-label={`${n} sao`}>
+const Stars = ({ n, size = 14 }: { n: number; size?: number }) => (
+  <span className="stars" aria-label={`${n} sao`}>
     {[1, 2, 3, 4, 5].map((i) => (
       <Star
         key={i}
-        size={14}
+        size={size}
         fill={i <= Math.round(n) ? "#ffb938" : "none"}
         color={i <= Math.round(n) ? "#ffb938" : "#c5d1d5"}
       />
@@ -74,66 +41,40 @@ const Stars = ({ n }: { n: number }) => (
   </span>
 );
 
-const mockDispute = (b: BookingResponse): DisputeDetail => ({
-  id: b.disputeId ?? 7,
-  bookingId: b.id,
-  amount: b.totalPrice,
-  reason: 0,
-  description: "Phòng khách vẫn còn bụi, nhà vệ sinh chưa được lau kỹ.",
-  evidenceUrls: [],
-  taskerResponse: null,
-  taskerEvidenceUrls: [],
-  status: 0,
-  resolution: null,
-  refundAmount: null,
-  adminNote: null,
-  createdAt: new Date().toISOString(),
-  resolvedAt: null,
-});
-
 export default function BookingDetail() {
   const { id } = useParams();
   const bookingId = Number(id);
-  const { hash } = useLocation();
+  const location = useLocation();
+  const navigate = useNavigate();
   const now = useNow();
   const [b, setB] = useState<BookingResponse | null>(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [demo, setDemo] = useState(false);
-  const [serviceIds, setServiceIds] = useState<Record<string, number>>({});
   const [tasker, setTasker] = useState<UserReviews | null>(null);
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
   const [dispute, setDispute] = useState<DisputeDetail | null>(null);
   const [loc, setLoc] = useState<LocationResponse | null>(null);
   const [locMsg, setLocMsg] = useState("");
-  const [toast, setToast] = useState("");
+  const [toast, setToast] = useState((location.state as { toast?: string } | null)?.toast ?? "");
+  const closeToast = useCallback(() => setToast(""), []);
+
+  // Xóa toast khỏi history để F5 không hiện lại
+  useEffect(() => {
+    if ((location.state as { toast?: string } | null)?.toast)
+      navigate(location.pathname + location.hash, { replace: true, state: null });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const load = useCallback(
     async (silent = false) => {
-      if (!silent) {
-        setLoading(true);
-        setError("");
-      }
+      if (!silent) setError("");
       try {
-        const data = await bookingService.get(bookingId);
-        setB(data);
-        setDemo(false);
+        setB(await bookingService.get(bookingId));
       } catch (e) {
-        if (isNetworkError(e)) {
-          const m = mockOrders().find((o) => o.id === bookingId);
-          if (m) {
-            setB(m);
-            setDemo(true);
-          } else if (!silent)
-            setError("Không tìm thấy đơn (chưa kết nối được Backend).");
-        } else if (!silent)
+        if (!silent)
           setError(
-            axios.isAxiosError(e) && e.response?.status === 404
-              ? "Không tìm thấy đơn."
+            axios.isAxiosError(e) && (e.response?.status === 404 || e.response?.status === 403)
+              ? "Không tìm thấy đơn này trong tài khoản của bạn."
               : getErrorMessage(e),
           );
-      } finally {
-        if (!silent) setLoading(false);
       }
     },
     [bookingId],
@@ -142,66 +83,34 @@ export default function BookingDetail() {
   useEffect(() => {
     load();
   }, [load]);
-  useEffect(() => {
-    serviceCatalog
-      .list()
-      .then((d) =>
-        setServiceIds(Object.fromEntries(d.map((s) => [s.name, s.id]))),
-      )
-      .catch(() => undefined);
-  }, []);
 
-  // Đơn đang diễn ra: tự tải lại mỗi 10 giây
   useEffect(() => {
-    if (!b || demo || !LIVE.includes(b.status)) return;
+    if (!b || !LIVE.includes(b.status)) return;
     const t = setInterval(() => load(true), 10_000);
     return () => clearInterval(t);
-  }, [b, demo, load]);
+  }, [b, load]);
 
-  // Điểm đánh giá Tasker + đánh giá của đơn
   useEffect(() => {
-    if (!b?.taskerId) {
-      setTasker(null);
-      return;
-    }
-    reviewService
-      .forUser(b.taskerId)
-      .then(setTasker)
-      .catch((e) => setTasker(isNetworkError(e) ? mockUserReviews() : null));
+    if (!b?.taskerId) return setTasker(null);
+    reviewService.forUser(b.taskerId).then(setTasker).catch(() => setTasker(null));
   }, [b?.taskerId]);
+
   useEffect(() => {
     if (!b) return;
-    reviewService
-      .forBooking(b.id)
-      .then(setReviews)
-      .catch((e) =>
-        setReviews(
-          isNetworkError(e) && b.status === 5 && b.taskerId
-            ? mockBookingReviews(b.taskerId)
-            : [],
-        ),
-      );
-  }, [b?.id, b?.status, b?.taskerId]); // eslint-disable-line react-hooks/exhaustive-deps
+    reviewService.forBooking(b.id).then(setReviews).catch(() => setReviews([]));
+  }, [b?.id, b?.status]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Kết quả khiếu nại
   useEffect(() => {
-    if (!b?.disputeId) {
-      setDispute(null);
-      return;
-    }
-    disputeService
-      .get(b.disputeId)
-      .then(setDispute)
-      .catch((e) => setDispute(isNetworkError(e) ? mockDispute(b) : null));
-  }, [b?.disputeId]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    if (hash === "#khieu-nai" && dispute)
-      document
-        .getElementById("khieu-nai")
-        ?.scrollIntoView({ behavior: "smooth" });
-  }, [hash, dispute]);
+    if (!b?.disputeId) return setDispute(null);
+    disputeService.get(b.disputeId).then(setDispute).catch(() => setDispute(null));
+  }, [b?.disputeId, b?.status]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Theo dõi vị trí Tasker mỗi 10 giây khi đơn ở trạng thái 2 hoặc 3
+  useEffect(() => {
+    if (location.hash === "#khieu-nai" && dispute)
+      document.getElementById("khieu-nai")?.scrollIntoView({ behavior: "smooth" });
+  }, [location.hash, dispute]);
+
+  // Vị trí Tasker mỗi 10 giây khi đơn ở trạng thái 2 hoặc 3
   const tracking = b?.status === 2 || b?.status === 3;
   useEffect(() => {
     if (!b || !tracking) {
@@ -210,12 +119,7 @@ export default function BookingDetail() {
       return;
     }
     let stop = false;
-    const tick = () => {
-      if (demo) {
-        setLoc(mockTaskerLocation(b));
-        setLocMsg("");
-        return;
-      }
+    const tick = () =>
       bookingService
         .location(b.id)
         .then((r) => {
@@ -225,372 +129,338 @@ export default function BookingDetail() {
           }
         })
         .catch((e) => {
-          if (!stop) {
-            setLoc(null);
-            setLocMsg(
-              axios.isAxiosError(e) && e.response?.status === 404
-                ? "Tasker chưa chia sẻ vị trí"
-                : getErrorMessage(e),
-            );
-          }
+          if (stop) return;
+          setLoc(null);
+          setLocMsg(
+            axios.isAxiosError(e) && e.response?.status === 404
+              ? "Tasker chưa chia sẻ vị trí. Bản đồ sẽ cập nhật khi Tasker mở ứng dụng."
+              : getErrorMessage(e),
+          );
         });
-    };
     tick();
     const t = setInterval(tick, 10_000);
     return () => {
       stop = true;
       clearInterval(t);
     };
-  }, [b?.id, tracking, demo]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [b?.id, tracking]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const report = async (r: ReviewItem) => {
     try {
       await reviewService.report(r.id);
       setToast("Đã gửi báo cáo đánh giá cho quản trị viên.");
-      setReviews((l) =>
-        l.map((x) => (x.id === r.id ? { ...x, isFlagged: true } : x)),
-      );
+      setReviews((l) => l.map((x) => (x.id === r.id ? { ...x, isFlagged: true } : x)));
     } catch (e) {
       setToast(getErrorMessage(e));
     }
   };
 
-  if (loading)
+  if (error)
     return (
-      <>
-        <Navbar variant="app" />
-        <main className="app-page">
-          <div className="container">
-            <p className="muted">Đang tải đơn…</p>
-          </div>
-        </main>
-      </>
+      <AppShell narrow>
+        <Link to="/bookings" className="back">
+          <ArrowLeft size={16} /> Đơn của tôi
+        </Link>
+        <div className="notice notice--danger" role="alert">
+          {error}
+          <button type="button" className="link notice-action" onClick={() => load()}>
+            <RefreshCw size={14} /> Thử lại
+          </button>
+        </div>
+      </AppShell>
     );
-  if (error || !b)
+  if (!b)
     return (
-      <>
-        <Navbar variant="app" />
-        <main className="app-page">
-          <div className="container">
-            <div className="form-error" role="alert">
-              {error || "Không tìm thấy đơn."}
-            </div>
-            <Link to="/bookings" className="back-link">
-              <ArrowLeft size={14} /> Quay lại Đơn của tôi
-            </Link>
-          </div>
-        </main>
-      </>
+      <AppShell>
+        <div className="skeleton" style={{ height: 160, marginBottom: 16 }} />
+        <div className="detail-grid">
+          <div className="skeleton" style={{ height: 320 }} />
+          <div className="skeleton" style={{ height: 220 }} />
+        </div>
+      </AppShell>
     );
 
-  const meta = STATUS_META[b.status] ?? {
-    label: `Trạng thái ${b.status}`,
-    tone: "gray" as const,
-  };
-  const { Icon } = iconForService(b.serviceCategoryName);
+  const meta = STATUS_META[b.status] ?? { label: `Trạng thái ${b.status}`, tone: "gray" as const };
+  const { Icon, bg, fg } = iconForService(b.serviceCategoryName);
   const step = STEP_OF[b.status];
-  const closed = [6, 9, 12, 7].includes(b.status);
-  const home =
-    b.latitude != null && b.longitude != null
-      ? { lat: b.latitude, lng: b.longitude }
-      : null;
+  const home = b.latitude != null && b.longitude != null ? { lat: b.latitude, lng: b.longitude } : null;
+  const phone = b.contactPhone ?? b.customerPhone;
 
   const rows: [string, string][] = [
-    [
-      "Dịch vụ",
-      `${b.serviceCategoryName}${b.quantity ? ` · ${b.quantity}` : ""}`,
-    ],
-    ["Thời gian hẹn", formatDateTime(b.scheduledTime)],
+    ["Dịch vụ", b.serviceCategoryName],
+    ...(b.quantity ? ([["Số lượng", String(b.quantity)]] as [string, string][]) : []),
+    ["Giờ hẹn", formatDateTime(b.scheduledTime)],
     ["Địa chỉ", b.address],
+    ...(phone ? ([["SĐT liên hệ", formatPhone(phone)]] as [string, string][]) : []),
     ...(b.note ? ([["Ghi chú", b.note]] as [string, string][]) : []),
     [
       "Thanh toán",
       `${METHOD_LABEL[b.paymentMethod] ?? "—"}${b.paymentStatus != null ? ` · ${PAYMENT_STATUS_LABEL[b.paymentStatus] ?? ""}` : ""}`,
     ],
-    ...((b.cancellationFee ?? 0) > 0
-      ? ([["Phí hủy", formatVND(b.cancellationFee!)]] as [string, string][])
-      : []),
+    ...((b.cancellationFee ?? 0) > 0 ? ([["Phí hủy", formatVND(b.cancellationFee!)]] as [string, string][]) : []),
     ["Ngày tạo", formatDateTime(b.createdAt)],
   ];
 
   return (
-    <>
-      <Navbar variant="app" />
-      <main className="app-page">
-        <div className="container detail-wrap">
-          <Link to="/bookings" className="back-link">
-            <ArrowLeft size={14} /> Quay lại Đơn của tôi
-          </Link>
-          {demo && (
-            <div className="form-info">
-              Chưa kết nối được Backend – đang hiển thị dữ liệu mẫu.
-            </div>
-          )}
-          {toast && (
-            <div className="toast" role="status">
-              {toast}{" "}
-              <button
-                type="button"
-                className="link-teal"
-                onClick={() => setToast("")}
-              >
-                Đóng
-              </button>
-            </div>
-          )}
+    <AppShell>
+      <Link to="/bookings" className="back">
+        <ArrowLeft size={16} /> Đơn của tôi
+      </Link>
 
-          <header className="detail-head">
-            <span className="order-icon">
-              <Icon size={29} color="#0f9b8e" />
-            </span>
-            <div>
-              <h1 className="page-title">Đơn #{orderCode(b.id)}</h1>
-              <span className={`badge badge--${meta.tone}`}>{meta.label}</span>
-            </div>
-            <span className="order-price detail-price">
-              {formatVND(b.totalPrice)}
-            </span>
-          </header>
-
-          <p className="detail-note">{describe(b, now)}</p>
-          {b.status === 10 && b.paymentDueAt && (
-            <p className="detail-note detail-note--warn">
-              Hạn thanh toán còn {countdown(b.paymentDueAt, now)}
-            </p>
-          )}
-          {b.status === 4 && b.autoConfirmAt && (
-            <p className="detail-note detail-note--warn">
-              Tự xác nhận hoàn thành sau {countdown(b.autoConfirmAt, now)}. Hãy
-              xem ảnh trước/sau rồi xác nhận hoặc khiếu nại.
-            </p>
-          )}
-
-          {step !== undefined && !closed && (
-            <ol className="stepper-line" aria-label="Tiến độ đơn">
-              {STEPS.map((s, i) => (
-                <li
-                  key={s}
-                  className={i < step ? "done" : i === step ? "now" : ""}
-                >
-                  <i>{i < step ? "✓" : i + 1}</i>
-                  <span>{s}</span>
-                </li>
-              ))}
-            </ol>
-          )}
-
-          <div className="actions-bar">
-            <OrderActions
-              booking={b}
-              serviceIds={serviceIds}
-              inDetail
-              onChanged={(m) => {
-                setToast(m);
-                load(true);
-              }}
-            />
+      <section className="panel detail-head">
+        <div className="dh-top">
+          <span className="svc-icon svc-icon--lg" style={{ background: bg, color: fg }}>
+            <Icon size={26} />
+          </span>
+          <div className="dh-title">
+            <h1>{b.serviceCategoryName}</h1>
+            <span className="muted">Đơn #{orderCode(b.id)}</span>
           </div>
-
-          <div className="detail-grid">
-            <div className="detail-col">
-              <section className="card detail-card">
-                <h2>Thông tin đơn</h2>
-                {rows.map(([k, v]) => (
-                  <div className="kv-row" key={k}>
-                    <span>{k}</span>
-                    <b>{v}</b>
-                  </div>
-                ))}
-              </section>
-
-              {tracking && (
-                <section className="card detail-card">
-                  <h2>Vị trí Tasker</h2>
-                  {home ? (
-                    <TrackingMap
-                      home={home}
-                      tasker={
-                        loc ? { lat: loc.latitude, lng: loc.longitude } : null
-                      }
-                    />
-                  ) : (
-                    <p className="muted">
-                      Đơn chưa có tọa độ để hiển thị bản đồ.
-                    </p>
-                  )}
-                  <p className="muted">
-                    {loc
-                      ? `Cập nhật ${formatDateTime(loc.updatedAt).slice(-5)}${loc.distanceKm != null ? ` · còn khoảng ${loc.distanceKm} km` : ""} (tự làm mới mỗi 10 giây)`
-                      : locMsg || "Đang tải vị trí…"}
-                  </p>
-                </section>
-              )}
-
-              {(b.checkInPhotoUrl || b.checkOutPhotoUrl) && (
-                <section className="card detail-card">
-                  <h2>Ảnh trước / sau khi làm</h2>
-                  <div className="photo-pair">
-                    {(
-                      [
-                        ["Trước", b.checkInPhotoUrl],
-                        ["Sau", b.checkOutPhotoUrl],
-                      ] as const
-                    ).map(([label, url]) => (
-                      <figure key={label}>
-                        {url && url !== "demo" ? (
-                          <a href={url} target="_blank" rel="noreferrer">
-                            <img
-                              src={url}
-                              alt={`Ảnh ${label.toLowerCase()} khi làm`}
-                            />
-                          </a>
-                        ) : (
-                          <div className="photo-ph">
-                            <Camera size={24} color="#0f9b8e" />
-                          </div>
-                        )}
-                        <figcaption>{label}</figcaption>
-                      </figure>
-                    ))}
-                  </div>
-                </section>
-              )}
-            </div>
-
-            <div className="detail-col">
-              {b.taskerId && (
-                <section className="card detail-card">
-                  <h2>Tasker</h2>
-                  <div className="tasker-row">
-                    <span className="detail-avatar-lg">
-                      {(b.taskerName ?? "T")
-                        .trim()
-                        .split(/\s+/)
-                        .pop()
-                        ?.charAt(0)
-                        .toUpperCase()}
-                    </span>
-                    <div>
-                      <b>{b.taskerName}</b>
-                      {tasker && (
-                        <div className="rating-line">
-                          {tasker.ratingAverage != null ? (
-                            <>
-                              <Stars n={tasker.ratingAverage} />{" "}
-                              <span>
-                                {tasker.ratingAverage.toFixed(1)} ·{" "}
-                                {tasker.reviewCount} đánh giá
-                              </span>
-                            </>
-                          ) : (
-                            <span>Chưa có đánh giá</span>
-                          )}
-                        </div>
-                      )}
-                      {b.taskerPhone && (
-                        <a className="phone-link" href={`tel:${b.taskerPhone}`}>
-                          {b.taskerPhone}
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                  {tasker && tasker.reviews.length > 0 && (
-                    <ul className="mini-reviews">
-                      {tasker.reviews.slice(0, 3).map((r) => (
-                        <li key={r.id}>
-                          <Stars n={r.rating} /> <b>{r.reviewerName}</b>
-                          <p>{r.comment}</p>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </section>
-              )}
-
-              {reviews.length > 0 && (
-                <section className="card detail-card">
-                  <h2>Đánh giá của đơn này</h2>
-                  <ul className="mini-reviews">
-                    {reviews.map((r) => (
-                      <li key={r.id}>
-                        <Stars n={r.rating} />{" "}
-                        <b>
-                          {r.reviewerName}
-                          {r.reviewerId === b.taskerId ? " (Tasker)" : ""}
-                        </b>
-                        <p>{r.comment || "Không có nhận xét"}</p>
-                        {r.reviewerId === b.taskerId &&
-                          (r.isFlagged ? (
-                            <span className="muted">
-                              Đã báo cáo, chờ quản trị viên xử lý
-                            </span>
-                          ) : (
-                            <button
-                              type="button"
-                              className="link-teal"
-                              onClick={() => report(r)}
-                            >
-                              Báo cáo đánh giá bất thường
-                            </button>
-                          ))}
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              )}
-
-              {dispute && (
-                <section className="card detail-card" id="khieu-nai">
-                  <h2>Khiếu nại</h2>
-                  <div className="kv-row">
-                    <span>Trạng thái</span>
-                    <b>
-                      {dispute.status === 0
-                        ? "Đang chờ quản trị viên xử lý"
-                        : "Đã xử lý"}
-                    </b>
-                  </div>
-                  <div className="kv-row">
-                    <span>Lý do</span>
-                    <b>{DISPUTE_REASONS[dispute.reason] ?? "Khác"}</b>
-                  </div>
-                  <p className="quote-box">{dispute.description}</p>
-                  {dispute.taskerResponse && (
-                    <>
-                      <b className="sub-h">Phản hồi của Tasker</b>
-                      <p className="quote-box">{dispute.taskerResponse}</p>
-                    </>
-                  )}
-                  {dispute.status === 1 && (
-                    <>
-                      <div className="kv-row">
-                        <span>Kết quả</span>
-                        <b>
-                          {dispute.resolution != null
-                            ? DISPUTE_RESOLUTIONS[dispute.resolution]
-                            : "—"}
-                        </b>
-                      </div>
-                      {dispute.refundAmount ? (
-                        <div className="kv-row">
-                          <span>Số tiền hoàn</span>
-                          <b>{formatVND(dispute.refundAmount)}</b>
-                        </div>
-                      ) : null}
-                      {dispute.adminNote && (
-                        <>
-                          <b className="sub-h">Ghi chú của quản trị viên</b>
-                          <p className="quote-box">{dispute.adminNote}</p>
-                        </>
-                      )}
-                    </>
-                  )}
-                </section>
-              )}
-            </div>
+          <div className="dh-price">
+            <strong>{formatVND(b.totalPrice)}</strong>
+            <span className={`badge badge--${meta.tone}`}>{meta.label}</span>
           </div>
         </div>
-      </main>
-    </>
+        <p className="dh-desc">{describe(b, now)}</p>
+        {b.status === 10 && b.paymentDueAt && (
+          <div className="notice notice--warn">
+            <Clock size={18} />
+            <span>
+              Còn <b className="mono-num">{countdown(b.paymentDueAt, now)}</b> để thanh toán. Quá hạn đơn sẽ tự hủy.
+            </span>
+          </div>
+        )}
+        {b.status === 4 && b.autoConfirmAt && (
+          <div className="notice notice--warn">
+            <Clock size={18} />
+            <span>
+              Tự xác nhận hoàn thành sau <b className="mono-num">{countdown(b.autoConfirmAt, now)}</b>. Xem ảnh
+              trước/sau rồi xác nhận hoặc gửi khiếu nại.
+            </span>
+          </div>
+        )}
+        {step !== undefined && (
+          <ol className="progress" aria-label="Tiến độ đơn">
+            {STEPS.map((s, i) => (
+              <li key={s} className={i < step ? "done" : i === step ? "now" : ""} aria-current={i === step ? "step" : undefined}>
+                <i />
+                <span>{s}</span>
+              </li>
+            ))}
+          </ol>
+        )}
+        <div className="dh-actions">
+          <OrderActions
+            booking={b}
+            inDetail
+            onChanged={(m) => {
+              setToast(m);
+              load(true);
+            }}
+          />
+        </div>
+      </section>
+
+      <div className="detail-grid">
+        <div>
+          {tracking && (
+            <section className="panel">
+              <h2 className="panel-title">Vị trí Tasker</h2>
+              {home ? (
+                <MapView
+                  home={home}
+                  tasker={loc ? { lat: loc.latitude, lng: loc.longitude } : null}
+                  height={320}
+                  label="Bản đồ vị trí Tasker"
+                />
+              ) : (
+                <p className="muted">Đơn chưa có tọa độ để hiển thị bản đồ.</p>
+              )}
+              <p className="hint map-caption">
+                {loc
+                  ? `Cập nhật lúc ${formatTime(loc.updatedAt)}${loc.distanceKm != null ? ` · cách nhà bạn khoảng ${loc.distanceKm} km` : ""}. Tự làm mới mỗi 10 giây.`
+                  : locMsg || "Đang tải vị trí…"}
+              </p>
+            </section>
+          )}
+
+          <section className="panel">
+            <h2 className="panel-title">Thông tin đơn</h2>
+            {rows.map(([k, v]) => (
+              <div className="kv" key={k}>
+                <span>{k}</span>
+                <b>{v}</b>
+              </div>
+            ))}
+          </section>
+
+          {(b.checkInPhotoUrl || b.checkOutPhotoUrl) && (
+            <section className="panel">
+              <h2 className="panel-title">Ảnh trước và sau khi làm</h2>
+              <div className="photo-pair">
+                {(
+                  [
+                    ["Trước khi làm", b.checkInPhotoUrl],
+                    ["Sau khi làm", b.checkOutPhotoUrl],
+                  ] as const
+                ).map(([label, url]) => (
+                  <figure key={label}>
+                    {url ? (
+                      <a href={url} target="_blank" rel="noreferrer">
+                        <img src={url} alt={label} />
+                      </a>
+                    ) : (
+                      <div className="photo-ph">
+                        <Camera size={24} />
+                        <span>Chưa có ảnh</span>
+                      </div>
+                    )}
+                    <figcaption>{label}</figcaption>
+                  </figure>
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+
+        <div>
+          {b.taskerId ? (
+            <section className="panel">
+              <h2 className="panel-title">Tasker phụ trách</h2>
+              <div className="tasker-row">
+                <span className="avatar avatar--lg">{initials(b.taskerName)}</span>
+                <div className="tasker-info">
+                  <b>{b.taskerName}</b>
+                  {tasker && (
+                    <span className="rating">
+                      {tasker.ratingAverage != null ? (
+                        <>
+                          <Stars n={tasker.ratingAverage} /> {tasker.ratingAverage.toFixed(1)} · {tasker.reviewCount} đánh giá
+                        </>
+                      ) : (
+                        "Chưa có đánh giá"
+                      )}
+                    </span>
+                  )}
+                </div>
+              </div>
+              {b.taskerPhone && (
+                <a className="btn btn-outline btn-block tasker-call" href={`tel:${b.taskerPhone}`}>
+                  <Phone size={17} /> Gọi {formatPhone(b.taskerPhone)}
+                </a>
+              )}
+              {tasker && tasker.reviews.length > 0 && (
+                <ul className="reviews">
+                  {tasker.reviews.slice(0, 3).map((r) => (
+                    <li key={r.id}>
+                      <div>
+                        <b>{r.reviewerName}</b> <Stars n={r.rating} size={12} />
+                      </div>
+                      {r.comment && <p>{r.comment}</p>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          ) : (
+            [0, 1, 8, 10].includes(b.status) && (
+              <section className="panel finding">
+                <span className="finding-pulse" aria-hidden="true" />
+                <div>
+                  <b>{b.status === 10 ? "Chờ thanh toán" : b.status === 8 ? "Chưa có Tasker nhận" : "Đang tìm Tasker"}</b>
+                  <p className="hint">
+                    {b.status === 8
+                      ? "Bạn có thể thử lại, đổi giờ hẹn hoặc hủy đơn."
+                      : b.status === 10
+                        ? "Sau khi thanh toán, lời mời sẽ được gửi tới Tasker gần bạn."
+                        : "Lời mời đang gửi lần lượt tới Tasker trong bán kính 3, 5 rồi 8 km."}
+                  </p>
+                </div>
+              </section>
+            )
+          )}
+
+          {reviews.length > 0 && (
+            <section className="panel">
+              <h2 className="panel-title">Đánh giá của đơn này</h2>
+              <ul className="reviews">
+                {reviews.map((r) => (
+                  <li key={r.id}>
+                    <div>
+                      <b>
+                        {r.reviewerName}
+                        {r.reviewerId === b.taskerId ? " (Tasker)" : " (Bạn)"}
+                      </b>{" "}
+                      <Stars n={r.rating} size={12} />
+                    </div>
+                    <p>{r.comment || "Không có nhận xét"}</p>
+                    {r.reviewerId === b.taskerId &&
+                      (r.isFlagged ? (
+                        <span className="hint">Đã báo cáo, chờ quản trị viên xử lý</span>
+                      ) : (
+                        <button type="button" className="link small" onClick={() => report(r)}>
+                          <Flag size={13} /> Báo cáo đánh giá không phù hợp
+                        </button>
+                      ))}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {dispute && (
+            <section className="panel" id="khieu-nai">
+              <h2 className="panel-title">
+                Khiếu nại
+                <span className={`badge ${dispute.status === 0 ? "badge--amber" : "badge--green"}`}>
+                  {dispute.status === 0 ? "Đang xử lý" : "Đã xử lý"}
+                </span>
+              </h2>
+              <div className="kv">
+                <span>Lý do</span>
+                <b>{DISPUTE_REASONS[dispute.reason] ?? "Khác"}</b>
+              </div>
+              <p className="quote">{dispute.description}</p>
+              {dispute.evidenceUrls.length > 0 && (
+                <div className="thumbs">
+                  {dispute.evidenceUrls.map((u) => (
+                    <a key={u} href={u} target="_blank" rel="noreferrer">
+                      <img src={u} alt="Ảnh bằng chứng" />
+                    </a>
+                  ))}
+                </div>
+              )}
+              {dispute.taskerResponse && (
+                <>
+                  <b className="sub-h">Phản hồi của Tasker</b>
+                  <p className="quote">{dispute.taskerResponse}</p>
+                </>
+              )}
+              {dispute.status === 1 && (
+                <>
+                  <div className="kv">
+                    <span>Kết quả</span>
+                    <b>{dispute.resolution != null ? DISPUTE_RESOLUTIONS[dispute.resolution] : "—"}</b>
+                  </div>
+                  {dispute.refundAmount ? (
+                    <div className="kv">
+                      <span>Số tiền hoàn</span>
+                      <b>{formatVND(dispute.refundAmount)}</b>
+                    </div>
+                  ) : null}
+                  {dispute.adminNote && (
+                    <>
+                      <b className="sub-h">Ghi chú của quản trị viên</b>
+                      <p className="quote">{dispute.adminNote}</p>
+                    </>
+                  )}
+                </>
+              )}
+            </section>
+          )}
+        </div>
+      </div>
+      <Toast message={toast} onClose={closeToast} />
+    </AppShell>
   );
 }

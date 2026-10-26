@@ -3,11 +3,12 @@
 Website dành cho khách hàng của hệ thống **HomeService** (đặt dịch vụ tại nhà, theo mô hình bTaskee) — đề tài Công nghệ phần mềm Nâng cao, Nhóm 15.
 
 - **Framework**: React 19 + TypeScript + Vite
-- **Routing**: react-router-dom
+- **Routing**: react-router-dom (các trang tải theo nhu cầu – lazy load)
 - **HTTP client**: axios (`src/services/api.ts`, tự gắn JWT, tự đăng xuất khi gặp 401)
-- **Bản đồ**: Leaflet + OpenStreetMap (không cần API key)
-- **Icon**: lucide-react
-- **Backend**: repo `HomeService-Backend` — cần nhánh có đủ Sprint 7 (`feature/sprint-7-hoan-thien-bao-cao`, có `/api/profile`, `GET /api/reviews/user/{id}`, lọc đơn `?status=&keyword=`…)
+- **Bản đồ**: Leaflet + OpenStreetMap, ảnh nền và tìm địa chỉ đi qua Backend `/api/geo` (không cần API key)
+- **Phông chữ**: Be Vietnam Pro (tự host qua `@fontsource`, không cần Google Fonts)
+- **Icon**: lucide-react · **Mã QR**: qrcode-generator
+- **Backend**: repo `HomeService-Backend`, nhánh có `contactPhone` và `/api/geo` (`feature/so-dien-thoai-lien-he`)
 
 ## Chạy dự án
 
@@ -17,51 +18,59 @@ cp .env.example .env     # chỉnh VITE_API_BASE_URL nếu backend chạy ở đ
 npm run dev
 ```
 
-Mặc định chạy ở `http://localhost:5173`, gọi API tại `http://localhost:8080/api` (CORS của Backend cho phép 5173 và 5174).
-Chưa có Backend: ở trang `/login` bấm **"Xem thử giao diện khách hàng"** (chỉ có khi chạy `npm run dev`) — các trang dùng dữ liệu mẫu theo Figma.
+Mặc định chạy ở `http://localhost:5173`, gọi API tại `http://localhost:8080/api`. Website **không còn dữ liệu mẫu**: cần chạy Backend trước.
+
+## Nút tải ứng dụng Mobile
+
+Trang chủ (mục *Tải ứng dụng*) và trang *Trở thành Tasker* có nút tải file APK và mã QR.
+
+1. Build APK từ repo `HomeService-Mobile`:
+   ```bash
+   flutter build apk --release --dart-define=API_BASE_URL=http://<IP-máy-chạy-Backend>:8080/api
+   ```
+2. Đổi tên `build/app/outputs/flutter-apk/app-release.apk` thành `HomeService.apk`, chép vào `public/downloads/`.
+3. Chưa có file thì website tự hiện “Bản cài đặt đang được cập nhật”.
+
+Mã QR chứa link tuyệt đối tới file APK. Muốn điện thoại quét được khi chạy ở máy cá nhân, mở website bằng IP máy tính (`npm run dev -- --host`, rồi vào `http://192.168.x.x:5173`).
 
 ## Trang và User Story
 
 | Đường dẫn | Trang | User Story |
 |---|---|---|
-| `/` | Landing: dịch vụ, bảng giá, tìm kiếm | US10, US11 |
+| `/` | Trang giới thiệu: ước tính chi phí, bảng giá, quy trình, tải ứng dụng | US10, US11 |
 | `/login`, `/register` | Đăng nhập, đăng ký | US01, US02, US03 |
-| `/booking/new` | Tạo đơn (giờ, địa chỉ, tọa độ), thanh toán trước | US12, US13, US21 |
+| `/booking/new` | Tạo đơn: bản đồ ghim vị trí (tự điền địa chỉ), tìm địa chỉ, SĐT liên hệ gợi ý từ hồ sơ, thanh toán | US12, US13, US21 |
 | `/bookings` | Đơn của tôi: lọc, tìm, hủy (hiện phí hủy), thử lại, xác nhận, khiếu nại, đánh giá | US14, US15, US33 |
-| `/bookings/:id` | Chi tiết đơn: bản đồ theo dõi Tasker, ảnh trước/sau, đánh giá, kết quả khiếu nại, trả nợ | US19, US25, US34–US37 |
-| `/notifications` | Thông báo, chuông chưa đọc | US29 |
-| `/profile` | Hồ sơ cá nhân, lịch sử thanh toán | US05, US24 |
-| `/tasker-guide` | Hướng dẫn làm Tasker (đăng ký trên app di động) | US04 |
+| `/bookings/:id` | Chi tiết đơn: tiến độ, theo dõi Tasker trên bản đồ, ảnh trước/sau, đánh giá, khiếu nại, trả nợ | US19, US25, US34–US37 |
+| `/notifications` | Thông báo, lọc chưa đọc, đánh dấu đã đọc | US29 |
+| `/profile` | Hồ sơ cá nhân (ảnh đại diện, SĐT, địa chỉ mặc định), lịch sử thanh toán | US05, US24 |
+| `/tasker-guide` | Hướng dẫn làm Tasker + tải ứng dụng | US04 |
 
 ## Phân quyền & chuyển role bằng đăng nhập
 
-Đăng nhập ở Web Customer hoặc Web Admin đều được; hệ thống đọc `role` rồi đưa đến đúng website:
-
 | Tài khoản | Đăng nhập ở Web Customer (5173) | Đăng nhập ở Web Admin (5174) |
 |---|---|---|
-| Khách hàng (0) | Vào trang chủ | Tự chuyển sang Web Customer |
+| Khách hàng (0) | Vào Đơn của tôi | Tự chuyển sang Web Customer |
 | Admin (2) | Tự chuyển sang Web Admin | Vào Dashboard |
 | Tasker (1) | Báo lỗi: dùng app di động | Báo lỗi: dùng app di động |
 
-Phiên được chuyển qua URL hash (`#auth=...`) và bị xóa khỏi thanh địa chỉ ngay khi trang đích đọc xong. Địa chỉ Web Admin cấu hình ở `VITE_ADMIN_URL`.
+Phiên được chuyển qua URL hash (`#auth=...`) và bị xóa khỏi thanh địa chỉ ngay khi trang đích đọc xong.
 
 ## Cấu trúc thư mục
 
 ```
 src/
 ├── pages/        # Landing, Login, Register, Booking, Orders, BookingDetail, Notifications, Profile, TaskerGuide
-├── components/   # Navbar, OrderActions (nút theo trạng thái đơn), OrderDialogs, TrackingMap, Modal...
-├── services/     # api.ts (axios), authService, serviceCatalog, bookingService, userServices
-├── context/      # AuthContext, NotificationContext
-├── types/        # Kiểu dữ liệu, enum số – khớp DTO của Backend (SRS mục 7.8, 9)
-├── utils/        # format tiền/giờ, validate (SRS 6.1), trạng thái đơn, chuyển phiên giữa 2 website
-├── data/         # Dữ liệu mẫu cho chế độ xem thử khi chưa có Backend
-└── styles/       # Design token theo Figma + CSS từng khu vực
+├── components/   # AppShell, Navbar (+ thanh tab dưới trên điện thoại), MapView, AppDownload, QrCode,
+│                 # OrderActions (nút theo trạng thái đơn), OrderDialogs, Modal/Toast, AuthLayout...
+├── services/     # api.ts (axios), authService, serviceCatalog, bookingService, userServices, geoService
+├── hooks/        # useNow (đồng hồ đếm ngược), useServices, useApkAvailable
+├── context/      # AuthContext, NotificationContext (chuông, tự làm mới 30 giây)
+├── types/        # Kiểu dữ liệu, enum số – khớp DTO của Backend
+├── utils/        # format tiền/giờ/SĐT, validate, trạng thái đơn, cấu hình tải app, chuyển phiên
+└── styles/       # global.css (design token dùng chung với Mobile), shell, landing, auth, pages
+public/downloads/ # Đặt HomeService.apk ở đây
 ```
-
-## Quy ước làm việc nhóm
-
-Tên nhánh `feature/USxx-...`, commit `feat: USxx ...`, mở Pull Request vào `main` (xem file *Hướng dẫn làm việc nhóm với Repo*). Mỗi page/service có comment `// USxx` ở đầu file.
 
 ## Build production
 

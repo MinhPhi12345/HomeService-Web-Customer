@@ -1,10 +1,11 @@
 import axios, { AxiosError } from "axios";
+import { API_BASE } from "../utils/appConfig";
 
 const TOKEN_KEY = "hs_token";
 const USER_KEY = "hs_user";
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080/api",
+  baseURL: API_BASE,
   headers: { "Content-Type": "application/json" },
 });
 
@@ -39,7 +40,7 @@ api.interceptors.response.use(
 export function getErrorMessage(error: unknown): string {
   if (axios.isAxiosError(error)) {
     if (!error.response)
-      return "Không kết nối được máy chủ. Vui lòng kiểm tra Backend đang chạy.";
+      return "Không kết nối được máy chủ. Kiểm tra mạng hoặc Backend rồi thử lại.";
     const data = error.response.data as
       { message?: string; errors?: Record<string, string[]> } | undefined;
     if (data?.message) return data.message;
@@ -62,7 +63,3 @@ export function getErrorMessage(error: unknown): string {
 }
 
 export const storage = { TOKEN_KEY, USER_KEY };
-
-/** Chế độ xem thử giao diện (chỉ khi chạy dev, không cần Backend) */
-export const DEMO_TOKEN = "demo-token";
-export const isDemo = () => localStorage.getItem(TOKEN_KEY) === DEMO_TOKEN;

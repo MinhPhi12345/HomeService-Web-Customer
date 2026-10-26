@@ -25,7 +25,7 @@ type Dlg =
 interface Props {
   booking: BookingResponse;
   /** Id dịch vụ theo tên – dùng cho nút "Đặt lại" khi BE chưa trả serviceCategoryId */
-  serviceIds: Record<string, number>;
+  serviceIds?: Record<string, number>;
   onChanged: (message: string) => void;
   /** Ẩn nút "Theo dõi" khi đang ở trang chi tiết */
   inDetail?: boolean;
@@ -60,7 +60,7 @@ export default function OrderActions({
   };
 
   const rebook = () => {
-    const id = b.serviceCategoryId ?? serviceIds[b.serviceCategoryName];
+    const id = b.serviceCategoryId || serviceIds?.[b.serviceCategoryName];
     const q = new URLSearchParams();
     if (id) q.set("serviceId", String(id));
     q.set("address", b.address);
@@ -105,18 +105,17 @@ export default function OrderActions({
       href={`tel:${b.taskerPhone}`}
       className="btn btn-outline btn-sm"
     >
-      <Phone size={14} />
-      &nbsp;Gọi Tasker
+      <Phone size={15} /> Gọi Tasker
     </a>
   );
   const cancel = (label = "Hủy đơn") =>
-    cb("cancel", label, "btn-outline btn-outline--danger", () =>
+    cb("cancel", label, "btn-danger-outline", () =>
       setDlg("cancel"),
     );
   const rebookBtn = cb("rebook", "Đặt lại", "btn-outline", rebook);
   const dispute = (label = "Khiếu nại") =>
     b.canDispute &&
-    cb("dispute", label, "btn-outline btn-outline--danger", () =>
+    cb("dispute", label, "btn-danger-outline", () =>
       setDlg("dispute"),
     );
   const hasFeeDue =
@@ -196,7 +195,7 @@ export default function OrderActions({
             cb(
               "paid",
               "Khiếu nại “tôi đã trả”",
-              "btn-outline btn-outline--danger",
+              "btn-danger-outline",
               () => setDlg("claimPaid"),
             ),
         ];

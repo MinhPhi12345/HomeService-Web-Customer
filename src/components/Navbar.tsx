@@ -1,165 +1,223 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
-import { Bell, House } from "lucide-react";
+import {
+  Bell,
+  CalendarPlus,
+  ClipboardList,
+  House,
+  LogOut,
+  Menu,
+  Smartphone,
+  UserRound,
+  X,
+} from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useNotifications } from "../context/NotificationContext";
+import { initials } from "../utils/format";
 
-const links = [
-  { id: "dich-vu", label: "Dịch vụ" },
-  { id: "quy-trinh", label: "Quy trình" },
-  { id: "vi-sao", label: "Vì sao chọn chúng tôi" },
-  { id: "tasker", label: "Trở thành Tasker" },
-];
+/** "Đặng Hoàng Minh Phi" -> "Minh Phi" – tên hiển thị gọn trên thanh menu */
+const shortName = (full: string) => {
+  const w = full.trim().split(/\s+/);
+  const two = w.slice(-2).join(" ");
+  return two.length > 16 ? w[w.length - 1] : two;
+};
 
-/**
- * landing: menu cuộn mục (W01) · app: Dịch vụ / Đơn của tôi + avatar (W03, W04) · minimal: chỉ logo + nút (W05)
- */
-export default function Navbar({
-  variant = "landing",
-}: {
-  variant?: "landing" | "app" | "minimal";
-}) {
-  const { user, logout } = useAuth();
-  const { unreadCount } = useNotifications();
-  const navigate = useNavigate();
-  const { pathname } = useLocation();
-  const [menu, setMenu] = useState(false);
-
-  const goTo = (id: string) => {
-    if (pathname !== "/") return navigate("/", { state: { scrollTo: id } });
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  const firstName = user?.fullName.trim().split(/\s+/).pop() ?? "";
-
-  const bell = user && (
+export function Logo({ light = false }: { light?: boolean }) {
+  return (
     <Link
-      to="/notifications"
-      className="bell-btn"
-      aria-label={
-        unreadCount > 0 ? `Thông báo, ${unreadCount} chưa đọc` : "Thông báo"
-      }
+      to="/"
+      className={`logo${light ? " logo--light" : ""}`}
+      aria-label="HomeService – Trang chủ"
     >
-      <Bell size={19} />
-      {unreadCount > 0 && (
-        <em className="bell-badge">{unreadCount > 9 ? "9+" : unreadCount}</em>
-      )}
+      <span className="logo-mark">
+        <House size={19} strokeWidth={2.4} />
+      </span>
+      <span>
+        Home<b>Service</b>
+      </span>
     </Link>
   );
+}
 
-  const userPill = user && (
-    <div className="user-pill-wrap">
+function UserMenu() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent) =>
+      !ref.current?.contains(e.target as Node) && setOpen(false);
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [open]);
+
+  if (!user) return null;
+  return (
+    <div className="user-menu" ref={ref}>
       <button
         type="button"
-        className="user-pill"
-        onClick={() => setMenu((m) => !m)}
+        className="user-btn"
         aria-haspopup="menu"
-        aria-expanded={menu}
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
       >
-        <span className="user-avatar">{firstName.charAt(0).toUpperCase()}</span>
-        <span className="user-name">{firstName}</span>
+        <span className="avatar">{initials(user.fullName)}</span>
+        <span className="user-name" title={user.fullName}>
+          {shortName(user.fullName)}
+        </span>
       </button>
-      {menu && (
-        <div
-          className="user-menu"
-          role="menu"
-          onMouseLeave={() => setMenu(false)}
-        >
-          <Link to="/bookings" role="menuitem" onClick={() => setMenu(false)}>
-            Đơn của tôi
+      {open && (
+        <div className="menu" role="menu">
+          <div className="menu-head">
+            <b>{user.fullName}</b>
+            <span>{user.email}</span>
+          </div>
+          <Link to="/profile" role="menuitem" onClick={() => setOpen(false)}>
+            <UserRound size={17} /> Hồ sơ của tôi
           </Link>
-          <Link to="/profile" role="menuitem" onClick={() => setMenu(false)}>
-            Hồ sơ cá nhân
+          <Link to="/bookings" role="menuitem" onClick={() => setOpen(false)}>
+            <ClipboardList size={17} /> Đơn của tôi
           </Link>
-          <Link
-            to="/notifications"
-            role="menuitem"
-            onClick={() => setMenu(false)}
-          >
-            Thông báo
+          <Link to="/#tai-app" role="menuitem" onClick={() => setOpen(false)}>
+            <Smartphone size={17} /> Tải ứng dụng
           </Link>
           <button
             type="button"
             role="menuitem"
-            onClick={() => {
-              setMenu(false);
-              logout().then(() => navigate("/"));
+            onClick={async () => {
+              setOpen(false);
+              await logout();
+              navigate("/");
             }}
           >
-            Đăng xuất
+            <LogOut size={17} /> Đăng xuất
           </button>
         </div>
       )}
     </div>
   );
+}
+
+function BellLink() {
+  const { unreadCount } = useNotifications();
+  return (
+    <Link
+      to="/notifications"
+      className="icon-btn"
+      aria-label={`Thông báo${unreadCount ? ` (${unreadCount} chưa đọc)` : ""}`}
+    >
+      <Bell size={20} />
+      {unreadCount > 0 && (
+        <span className="dot-count">{unreadCount > 99 ? "99+" : unreadCount}</span>
+      )}
+    </Link>
+  );
+}
+
+/** Thanh điều hướng: "public" cho trang giới thiệu, "app" cho các trang sau đăng nhập */
+export default function Navbar({ variant = "app" }: { variant?: "public" | "app" }) {
+  const { user } = useAuth();
+  const [open, setOpen] = useState(false);
+  const { pathname, hash } = useLocation();
+
+  useEffect(() => setOpen(false), [pathname, hash]);
+
+  const publicLinks = (
+    <>
+      <a href="/#dich-vu">Dịch vụ &amp; bảng giá</a>
+      <a href="/#quy-trinh">Cách hoạt động</a>
+      <a href="/#tai-app">Tải ứng dụng</a>
+      <NavLink to="/tasker-guide">Trở thành Tasker</NavLink>
+    </>
+  );
+  const appLinks = (
+    <>
+      <NavLink to="/booking/new">Đặt dịch vụ</NavLink>
+      <NavLink to="/bookings" end>
+        Đơn của tôi
+      </NavLink>
+      <NavLink to="/tasker-guide">Trở thành Tasker</NavLink>
+    </>
+  );
 
   return (
-    <header
-      className={`navbar${variant !== "landing" ? " navbar--bordered" : ""}`}
-    >
-      <div className="container navbar-inner">
-        <Link to="/" className="brand" aria-label="HomeService – Trang chủ">
-          <span className="brand-mark">
-            <House size={21} strokeWidth={2.2} />
-          </span>
-          <span className="brand-name">HomeService</span>
-        </Link>
-
-        {variant === "landing" && (
-          <nav className="nav-links" aria-label="Điều hướng chính">
-            {links.map((l) => (
-              <button key={l.id} type="button" onClick={() => goTo(l.id)}>
-                {l.label}
-              </button>
-            ))}
-          </nav>
-        )}
-        {variant === "app" && (
-          <nav
-            className="nav-links nav-links--app"
-            aria-label="Điều hướng chính"
-          >
-            <NavLink
-              to="/booking/new"
-              className={({ isActive }) => (isActive ? "active" : "")}
-            >
-              Dịch vụ
-            </NavLink>
-            <NavLink
-              to="/bookings"
-              className={({ isActive }) => (isActive ? "active" : "")}
-            >
-              Đơn của tôi
-            </NavLink>
-          </nav>
-        )}
-
-        <div className="nav-actions">
-          {variant === "app" ? (
+    <header className={`nav nav--${variant}`}>
+      <div className="container nav-inner">
+        <Logo />
+        <nav className="nav-links" aria-label="Điều hướng chính">
+          {variant === "public" ? publicLinks : appLinks}
+        </nav>
+        <div className="nav-right">
+          {user ? (
             <>
-              {bell}
-              {userPill}
-            </>
-          ) : user ? (
-            <>
-              {bell}
-              {userPill}
-              <Link to="/booking/new" className="btn btn-primary">
-                Đặt dịch vụ
-              </Link>
+              {variant === "public" && (
+                <Link to="/bookings" className="btn btn-outline btn-sm hide-sm">
+                  Đơn của tôi
+                </Link>
+              )}
+              <BellLink />
+              <UserMenu />
             </>
           ) : (
             <>
-              <Link to="/login" className="btn btn-outline">
+              <Link to="/login" className="btn btn-ghost btn-sm">
                 Đăng nhập
               </Link>
-              <Link to="/booking/new" className="btn btn-primary">
-                Đặt dịch vụ
+              <Link to="/register" className="btn btn-primary btn-sm hide-sm">
+                Đăng ký
               </Link>
             </>
           )}
+          {variant === "public" && (
+            <button
+              type="button"
+              className="icon-btn nav-burger"
+              aria-label={open ? "Đóng menu" : "Mở menu"}
+              aria-expanded={open}
+              onClick={() => setOpen((o) => !o)}
+            >
+              {open ? <X size={22} /> : <Menu size={22} />}
+            </button>
+          )}
         </div>
       </div>
+      {open && variant === "public" && (
+        <nav className="nav-drawer" aria-label="Menu">
+          {publicLinks}
+          {!user && (
+            <Link to="/register" className="btn btn-primary btn-block">
+              Tạo tài khoản
+            </Link>
+          )}
+        </nav>
+      )}
     </header>
+  );
+}
+
+/** Thanh tab dưới cùng trên màn hình nhỏ (giống ứng dụng di động) */
+export function BottomNav() {
+  const { unreadCount } = useNotifications();
+  const items = [
+    { to: "/", label: "Trang chủ", Icon: House, end: true },
+    { to: "/booking/new", label: "Đặt dịch vụ", Icon: CalendarPlus },
+    { to: "/bookings", label: "Đơn", Icon: ClipboardList, end: true },
+    { to: "/notifications", label: "Thông báo", Icon: Bell, badge: unreadCount },
+    { to: "/profile", label: "Tài khoản", Icon: UserRound },
+  ];
+  return (
+    <nav className="bottom-nav" aria-label="Điều hướng nhanh">
+      {items.map(({ to, label, Icon, end, badge }) => (
+        <NavLink key={to} to={to} end={end}>
+          <span className="bn-icon">
+            <Icon size={21} />
+            {!!badge && <i>{badge > 9 ? "9+" : badge}</i>}
+          </span>
+          {label}
+        </NavLink>
+      ))}
+    </nav>
   );
 }

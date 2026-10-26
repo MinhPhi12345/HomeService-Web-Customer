@@ -1,168 +1,119 @@
-// US05/US24 - Hồ sơ cá nhân và lịch sử thanh toán
-import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
-import { Camera, TriangleAlert } from "lucide-react";
-import Navbar from "../components/Navbar";
+// US05/US29 – Hồ sơ cá nhân và lịch sử thanh toán
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { AlertTriangle, Camera, Crosshair, Loader2, Mail, Receipt, RefreshCw, ShieldCheck } from "lucide-react";
+import AppShell from "../components/AppShell";
+import { Toast } from "../components/Modal";
 import { useAuth } from "../context/AuthContext";
-import {
-  profileService,
-  paymentHistoryService,
-} from "../services/userServices";
+import { profileService, paymentHistoryService } from "../services/userServices";
 import { uploadService } from "../services/bookingService";
+import { currentPosition, geoService } from "../services/geoService";
 import { getErrorMessage } from "../services/api";
-import { isNetworkError } from "../utils/net";
-import { mockPayments, mockProfile } from "../data/mockUser";
-import type { PaymentItem, ProfileResponse } from "../types";
+import type { Paged, PaymentItem, ProfileResponse } from "../types";
 import { validateFullName, validatePhone } from "../utils/validators";
-import { formatDateTime, formatVND } from "../utils/format";
-import {
-  METHOD_LABEL,
-  PAYMENT_STATUS_LABEL,
-  orderCode,
-} from "../utils/booking";
-import "../styles/landing.css";
-import "../styles/app.css";
+import { formatDate, formatDateTime, formatVND, initials } from "../utils/format";
+import { METHOD_LABEL, PAYMENT_STATUS_LABEL, orderCode } from "../utils/booking";
 
-const PAGE_SIZE = 20;
+const PAY_TONE: Record<number, string> = { 0: "blue", 1: "green", 2: "rose", 3: "amber", 4: "green", 5: "gray", 6: "gray" };
 
 function PaymentHistory() {
+  const [data, setData] = useState<Paged<PaymentItem> | null>(null);
   const [page, setPage] = useState(1);
-  const [rows, setRows] = useState<PaymentItem[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [demo, setDemo] = useState(false);
-
-  useEffect(() => {
-    setLoading(true);
+  const load = useCallback(() => {
     setError("");
+    setData(null);
     paymentHistoryService
-      .my(page, PAGE_SIZE)
-      .then((r) => {
-        setRows(r.items);
-        setTotal(r.totalCount);
-        setDemo(false);
-      })
-      .catch((e) => {
-        if (isNetworkError(e)) {
-          const m = mockPayments();
-          setRows(m);
-          setTotal(m.length);
-          setDemo(true);
-        } else setError(getErrorMessage(e));
-      })
-      .finally(() => setLoading(false));
+      .my(page, 10)
+      .then(setData)
+      .catch((e) => setError(getErrorMessage(e)));
   }, [page]);
+  useEffect(load, [load]);
 
-  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  if (error)
+    return (
+      <div className="notice notice--danger">
+        {error}
+        <button type="button" className="link notice-action" onClick={load}>
+          <RefreshCw size={14} /> Thử lại
+        </button>
+      </div>
+    );
+  if (!data)
+    return (
+      <div className="pay-list">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="skeleton" style={{ height: 64 }} />
+        ))}
+      </div>
+    );
+  if (!data.items.length)
+    return (
+      <div className="empty">
+        <div className="empty-icon">
+          <Receipt size={26} />
+        </div>
+        <h3>Chưa có giao dịch</h3>
+        <p>Các khoản thanh toán, hoàn tiền sẽ hiện ở đây.</p>
+      </div>
+    );
+  const pages = Math.max(1, Math.ceil(data.totalCount / data.pageSize));
   return (
-    <section className="card profile-card">
-      {demo && (
-        <div className="form-info">
-          Chưa kết nối được Backend – đang hiển thị dữ liệu mẫu.
-        </div>
-      )}
-      {loading && <p className="muted">Đang tải lịch sử thanh toán…</p>}
-      {error && (
-        <div className="form-error" role="alert">
-          {error}
-        </div>
-      )}
-      {!loading && !error && rows.length === 0 && (
-        <div className="empty">
-          <p>Bạn chưa có giao dịch nào.</p>
-        </div>
-      )}
-      {rows.length > 0 && (
-        <div className="table-scroll-c">
-          <table className="pay-table">
-            <thead>
-              <tr>
-                <th>Thời gian</th>
-                <th>Đơn</th>
-                <th>Dịch vụ</th>
-                <th>Số tiền</th>
-                <th>Phương thức</th>
-                <th>Trạng thái</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((p) => (
-                <tr key={p.id}>
-                  <td>{formatDateTime(p.paidAt ?? p.createdAt)}</td>
-                  <td>
-                    <Link to={`/bookings/${p.bookingId}`} className="link-teal">
-                      #{orderCode(p.bookingId)}
-                    </Link>
-                  </td>
-                  <td>{p.serviceCategoryName}</td>
-                  <td>
-                    <b>{formatVND(p.amount)}</b>
-                    {p.refundedAmount > 0 && (
-                      <small className="refund">
-                        {" "}
-                        hoàn {formatVND(p.refundedAmount)}
-                      </small>
-                    )}
-                  </td>
-                  <td>{METHOD_LABEL[p.method]}</td>
-                  <td>{PAYMENT_STATUS_LABEL[p.status] ?? p.status}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+    <>
+      <ul className="pay-list">
+        {data.items.map((p) => (
+          <li key={p.id}>
+            <Link to={`/bookings/${p.bookingId}`} className="pay-row">
+              <div>
+                <b>{p.serviceCategoryName}</b>
+                <span className="hint">
+                  #{orderCode(p.bookingId)} · {METHOD_LABEL[p.method]} · {formatDateTime(p.paidAt ?? p.createdAt)}
+                </span>
+              </div>
+              <div className="pay-amt">
+                <b>{formatVND(p.amount)}</b>
+                {p.refundedAmount > 0 && <span className="hint">Hoàn {formatVND(p.refundedAmount)}</span>}
+                <span className={`badge badge--${PAY_TONE[p.status] ?? "gray"}`}>{PAYMENT_STATUS_LABEL[p.status] ?? "—"}</span>
+              </div>
+            </Link>
+          </li>
+        ))}
+      </ul>
       {pages > 1 && (
         <div className="pager">
-          <button
-            type="button"
-            disabled={page <= 1}
-            onClick={() => setPage((p) => p - 1)}
-          >
-            ← Trước
+          <button type="button" className="btn btn-outline btn-sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+            Trang trước
           </button>
           <span>
-            Trang {page} / {pages}
+            {page} / {pages}
           </span>
-          <button
-            type="button"
-            disabled={page >= pages}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            Sau →
+          <button type="button" className="btn btn-outline btn-sm" disabled={page >= pages} onClick={() => setPage((p) => p + 1)}>
+            Trang sau
           </button>
         </div>
       )}
-    </section>
+    </>
   );
 }
 
 export default function Profile() {
   const { updateName } = useAuth();
-  const [tab, setTab] = useState<"info" | "payments">("info");
-  const [p, setP] = useState<ProfileResponse | null>(null);
-  const [form, setForm] = useState({
-    fullName: "",
-    phoneNumber: "",
-    address: "",
-    avatarUrl: "",
-  });
-  const [errors, setErrors] = useState<{
-    fullName?: string;
-    phoneNumber?: string;
-    address?: string;
-  }>({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [demo, setDemo] = useState(false);
+  const [params, setParams] = useSearchParams();
+  const tab = params.get("tab") === "payments" ? "payments" : "info";
+  const [profile, setProfile] = useState<ProfileResponse | null>(null);
+  const [loadError, setLoadError] = useState("");
+  const [form, setForm] = useState({ fullName: "", phoneNumber: "", address: "", avatarUrl: "" });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [serverError, setServerError] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [locating, setLocating] = useState(false);
   const [toast, setToast] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
+  const closeToast = useCallback(() => setToast(""), []);
 
-  const apply = (r: ProfileResponse) => {
-    setP(r);
+  const fill = (r: ProfileResponse) => {
+    setProfile(r);
     setForm({
       fullName: r.fullName,
       phoneNumber: r.phoneNumber ?? "",
@@ -170,44 +121,49 @@ export default function Profile() {
       avatarUrl: r.avatarUrl ?? "",
     });
   };
-
-  useEffect(() => {
+  const load = useCallback(() => {
+    setLoadError("");
     profileService
       .get()
-      .then((r) => {
-        apply(r);
-        setDemo(false);
-      })
-      .catch((e) => {
-        if (isNetworkError(e)) {
-          apply(mockProfile());
-          setDemo(true);
-        } else setError(getErrorMessage(e));
-      })
-      .finally(() => setLoading(false));
+      .then(fill)
+      .catch((e) => setLoadError(getErrorMessage(e)));
   }, []);
+  useEffect(load, [load]);
 
-  const onFile = async (file?: File) => {
+  const onAvatar = async (file?: File) => {
     if (!file) return;
-    if (
-      !["image/jpeg", "image/png"].includes(file.type) ||
-      file.size > 5 * 1024 * 1024
-    )
-      return setToast("Chỉ nhận ảnh JPG/PNG, tối đa 5 MB.");
+    if (!["image/jpeg", "image/png"].includes(file.type) || file.size > 5 * 1024 * 1024) {
+      setToast("Ảnh đại diện phải là JPG/PNG, tối đa 5 MB.");
+      return;
+    }
     setUploading(true);
     try {
-      const url = demo
-        ? URL.createObjectURL(file)
-        : await uploadService.upload(file);
+      const url = await uploadService.upload(file);
       setForm((f) => ({ ...f, avatarUrl: url }));
+      setToast("Đã tải ảnh lên. Bấm Lưu thay đổi để cập nhật.");
     } catch (e) {
       setToast(getErrorMessage(e));
     } finally {
       setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
     }
   };
 
-  const submit = async (e: FormEvent) => {
+  const fillAddressFromGps = async () => {
+    setLocating(true);
+    try {
+      const p = await currentPosition();
+      const a = await geoService.reverse(p.lat, p.lng);
+      if (a) setForm((f) => ({ ...f, address: a }));
+      else setToast("Chưa đọc được địa chỉ của vị trí này, bạn nhập tay nhé.");
+    } catch (e) {
+      setToast((e as Error).message);
+    } finally {
+      setLocating(false);
+    }
+  };
+
+  const save = async (e: FormEvent) => {
     e.preventDefault();
     const next = {
       fullName: validateFullName(form.fullName),
@@ -215,206 +171,206 @@ export default function Profile() {
       address: form.address.length > 255 ? "Địa chỉ tối đa 255 ký tự." : "",
     };
     setErrors(next);
-    setToast("");
-    if (next.fullName || next.phoneNumber || next.address) return;
+    setServerError("");
+    if (Object.values(next).some(Boolean)) return;
     setSaving(true);
     try {
-      // Gửi ĐỦ 4 field mỗi lần (Hướng dẫn 5.7) – không gửi thiếu sẽ làm mất SĐT/địa chỉ
-      const body = {
+      const r = await profileService.update({
         fullName: form.fullName.trim(),
-        phoneNumber: form.phoneNumber.trim() || null,
+        phoneNumber: form.phoneNumber || null,
         address: form.address.trim() || null,
         avatarUrl: form.avatarUrl || null,
-      };
-      const r = demo
-        ? { ...(p as ProfileResponse), ...body }
-        : await profileService.update(body);
-      apply(r);
+      });
+      fill(r);
       updateName(r.fullName);
-      setToast("Đã lưu hồ sơ.");
+      setToast("Đã lưu thay đổi.");
     } catch (err) {
-      setToast(getErrorMessage(err));
+      setServerError(getErrorMessage(err));
     } finally {
       setSaving(false);
     }
   };
 
-  const initial = (form.fullName.trim().split(/\s+/).pop() ?? "U")
-    .charAt(0)
-    .toUpperCase();
-  const debt = p?.outstandingAmount ?? 0;
+  const dirty =
+    !!profile &&
+    (form.fullName !== profile.fullName ||
+      form.phoneNumber !== (profile.phoneNumber ?? "") ||
+      form.address !== (profile.address ?? "") ||
+      form.avatarUrl !== (profile.avatarUrl ?? ""));
+
+  if (loadError)
+    return (
+      <AppShell narrow>
+        <div className="notice notice--danger">
+          {loadError}
+          <button type="button" className="link notice-action" onClick={load}>
+            Thử lại
+          </button>
+        </div>
+      </AppShell>
+    );
 
   return (
-    <>
-      <Navbar variant="app" />
-      <main className="app-page">
-        <div className="container narrow">
-          <h1 className="page-title">Hồ sơ cá nhân</h1>
-          <div className="chip-row orders-filters" role="tablist">
-            {(
-              [
-                ["info", "Thông tin"],
-                ["payments", "Lịch sử thanh toán"],
-              ] as const
-            ).map(([k, label]) => (
-              <button
-                key={k}
-                role="tab"
-                aria-selected={tab === k}
-                type="button"
-                className={`chip${tab === k ? " chip--on" : ""}`}
-                onClick={() => setTab(k)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+    <AppShell>
+      <div className="page-head">
+        <div>
+          <h1 className="page-title">Tài khoản</h1>
+          <p className="page-sub">Số điện thoại và địa chỉ ở đây sẽ được gợi ý sẵn khi bạn đặt đơn.</p>
+        </div>
+      </div>
 
-          {tab === "payments" && <PaymentHistory />}
-
-          {tab === "info" && (
+      <div className="profile">
+        <aside className="panel profile-card">
+          {profile ? (
             <>
-              {loading && <p className="muted">Đang tải hồ sơ…</p>}
-              {error && (
-                <div className="form-error" role="alert">
-                  {error}
-                </div>
-              )}
-              {demo && (
-                <div className="form-info">
-                  Chưa kết nối được Backend – đang hiển thị dữ liệu mẫu, thay
-                  đổi không được lưu lên máy chủ.
-                </div>
-              )}
-              {p && debt > 0 && (
-                <div className="debt-alert" role="alert">
-                  <TriangleAlert size={18} />
+              <div className="profile-avatar">
+                <span className="avatar avatar--xl">
+                  {form.avatarUrl ? <img src={form.avatarUrl} alt="Ảnh đại diện" /> : initials(form.fullName)}
+                </span>
+                <button
+                  type="button"
+                  className="avatar-edit"
+                  aria-label="Đổi ảnh đại diện"
+                  onClick={() => fileRef.current?.click()}
+                  disabled={uploading}
+                >
+                  {uploading ? <Loader2 className="spin" size={16} /> : <Camera size={16} />}
+                </button>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/jpeg,image/png"
+                  hidden
+                  onChange={(e) => onAvatar(e.target.files?.[0])}
+                />
+              </div>
+              <h2>{profile.fullName}</h2>
+              <p className="muted profile-mail">
+                <Mail size={14} /> {profile.email}
+              </p>
+              {profile.createdAt && <p className="hint">Thành viên từ {formatDate(profile.createdAt)}</p>}
+              {(profile.outstandingAmount ?? 0) > 0 ? (
+                <div className="notice notice--danger profile-status">
+                  <AlertTriangle size={18} />
                   <div>
-                    Bạn đang nợ <b>{formatVND(debt)}</b>. Bạn chưa thể đặt đơn
-                    mới cho đến khi thanh toán.{" "}
-                    <Link to="/bookings" className="link-teal">
-                      Xem đơn cần trả
+                    <b>Còn nợ {formatVND(profile.outstandingAmount!)}</b>
+                    <Link to="/bookings?tab=confirm" className="link">
+                      Thanh toán ngay
                     </Link>
                   </div>
                 </div>
-              )}
-              {p?.isCashBlocked && (
-                <div className="form-info">
-                  Tài khoản đang bị chặn thanh toán tiền mặt, bạn chỉ thanh toán
-                  online được. Liên hệ quản trị viên nếu cần mở lại.
+              ) : (
+                <div className="notice notice--teal profile-status">
+                  <ShieldCheck size={18} />
+                  <span>{profile.isCashBlocked ? "Tài khoản tạm khóa thanh toán tiền mặt" : "Không có khoản nợ nào"}</span>
                 </div>
-              )}
-              {toast && (
-                <div className="toast" role="status">
-                  {toast}
-                </div>
-              )}
-
-              {p && (
-                <form
-                  className="card profile-card"
-                  onSubmit={submit}
-                  noValidate
-                >
-                  <div className="avatar-row">
-                    <span className="avatar-xl">
-                      {form.avatarUrl ? (
-                        <img src={form.avatarUrl} alt="Ảnh đại diện" />
-                      ) : (
-                        initial
-                      )}
-                    </span>
-                    <div>
-                      <button
-                        type="button"
-                        className="btn btn-outline btn-sm"
-                        onClick={() => fileRef.current?.click()}
-                        disabled={uploading}
-                      >
-                        <Camera size={14} />
-                        &nbsp;{uploading ? "Đang tải ảnh…" : "Đổi ảnh đại diện"}
-                      </button>
-                      <input
-                        ref={fileRef}
-                        type="file"
-                        accept="image/jpeg,image/png"
-                        hidden
-                        onChange={(e) => onFile(e.target.files?.[0])}
-                      />
-                      <p className="muted small">JPG hoặc PNG, tối đa 5 MB.</p>
-                    </div>
-                  </div>
-
-                  <div className="field">
-                    <label htmlFor="pf-email">Email (không sửa được)</label>
-                    <input
-                      id="pf-email"
-                      type="email"
-                      value={p.email}
-                      disabled
-                    />
-                  </div>
-                  <div className="field">
-                    <label htmlFor="pf-name">Họ và tên</label>
-                    <input
-                      id="pf-name"
-                      type="text"
-                      value={form.fullName}
-                      maxLength={100}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, fullName: e.target.value }))
-                      }
-                      aria-invalid={!!errors.fullName}
-                    />
-                    {errors.fullName && (
-                      <span className="field-error">{errors.fullName}</span>
-                    )}
-                  </div>
-                  <div className="field">
-                    <label htmlFor="pf-phone">Số điện thoại</label>
-                    <input
-                      id="pf-phone"
-                      type="tel"
-                      value={form.phoneNumber}
-                      placeholder="0901234567"
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, phoneNumber: e.target.value }))
-                      }
-                      aria-invalid={!!errors.phoneNumber}
-                    />
-                    {errors.phoneNumber && (
-                      <span className="field-error">{errors.phoneNumber}</span>
-                    )}
-                  </div>
-                  <div className="field">
-                    <label htmlFor="pf-addr">Địa chỉ mặc định</label>
-                    <input
-                      id="pf-addr"
-                      type="text"
-                      value={form.address}
-                      maxLength={255}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, address: e.target.value }))
-                      }
-                      aria-invalid={!!errors.address}
-                    />
-                    {errors.address && (
-                      <span className="field-error">{errors.address}</span>
-                    )}
-                  </div>
-                  <button
-                    type="submit"
-                    className="btn btn-primary"
-                    disabled={saving}
-                  >
-                    {saving ? "Đang lưu…" : "Lưu thay đổi"}
-                  </button>
-                </form>
               )}
             </>
+          ) : (
+            <div className="skeleton" style={{ height: 260 }} />
           )}
-        </div>
-      </main>
-    </>
+        </aside>
+
+        <section className="panel profile-main">
+          <div className="tabs" role="tablist">
+            <button
+              type="button"
+              role="tab"
+              className="tab"
+              aria-selected={tab === "info"}
+              onClick={() => setParams({}, { replace: true })}
+            >
+              Thông tin cá nhân
+            </button>
+            <button
+              type="button"
+              role="tab"
+              className="tab"
+              aria-selected={tab === "payments"}
+              onClick={() => setParams({ tab: "payments" }, { replace: true })}
+            >
+              Lịch sử thanh toán
+            </button>
+          </div>
+          <div className="profile-body">
+            {tab === "payments" ? (
+              <PaymentHistory />
+            ) : !profile ? (
+              <div className="skeleton" style={{ height: 300 }} />
+            ) : (
+              <form onSubmit={save} noValidate>
+                {serverError && (
+                  <div className="notice notice--danger" role="alert" style={{ marginBottom: 16 }}>
+                    {serverError}
+                  </div>
+                )}
+                <div className="bk-two">
+                  <div className="field">
+                    <label htmlFor="fullName">Họ và tên</label>
+                    <input
+                      id="fullName"
+                      value={form.fullName}
+                      maxLength={100}
+                      placeholder="Nhập họ và tên"
+                      onChange={(e) => setForm((f) => ({ ...f, fullName: e.target.value }))}
+                      aria-invalid={!!errors.fullName}
+                    />
+                    {errors.fullName && <span className="field-error">{errors.fullName}</span>}
+                  </div>
+                  <div className="field">
+                    <label htmlFor="phone">Số điện thoại</label>
+                    <input
+                      id="phone"
+                      type="tel"
+                      inputMode="numeric"
+                      maxLength={10}
+                      placeholder="Nhập số điện thoại (10 số)"
+                      value={form.phoneNumber}
+                      onChange={(e) => setForm((f) => ({ ...f, phoneNumber: e.target.value.replace(/\D/g, "") }))}
+                      aria-invalid={!!errors.phoneNumber}
+                    />
+                    {errors.phoneNumber ? (
+                      <span className="field-error">{errors.phoneNumber}</span>
+                    ) : (
+                      <span className="hint">Tự điền vào ô liên hệ khi đặt đơn.</span>
+                    )}
+                  </div>
+                </div>
+                <div className="field">
+                  <label htmlFor="email">Email</label>
+                  <input id="email" value={profile.email} disabled />
+                  <span className="hint">Email dùng để đăng nhập, không đổi được.</span>
+                </div>
+                <div className="field">
+                  <label htmlFor="address">Địa chỉ mặc định</label>
+                  <textarea
+                    id="address"
+                    rows={2}
+                    maxLength={255}
+                    placeholder="Nhập số nhà, tên đường, phường, quận"
+                    value={form.address}
+                    onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
+                    aria-invalid={!!errors.address}
+                  />
+                  {errors.address && <span className="field-error">{errors.address}</span>}
+                  <button type="button" className="chip chip--sm" onClick={fillAddressFromGps} disabled={locating}>
+                    {locating ? <Loader2 className="spin" size={14} /> : <Crosshair size={14} />} Lấy theo vị trí hiện tại
+                  </button>
+                </div>
+                <div className="form-actions">
+                  <button type="button" className="btn btn-outline" disabled={!dirty || saving} onClick={() => fill(profile)}>
+                    Hoàn tác
+                  </button>
+                  <button type="submit" className="btn btn-primary" disabled={!dirty || saving}>
+                    {saving ? <span className="spinner" /> : "Lưu thay đổi"}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </section>
+      </div>
+      <Toast message={toast} onClose={closeToast} />
+    </AppShell>
   );
 }

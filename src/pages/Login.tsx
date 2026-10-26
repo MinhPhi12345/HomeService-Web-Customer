@@ -1,22 +1,21 @@
-// US02 - Đăng nhập (Admin đăng nhập ở đây sẽ tự chuyển sang Web Admin)
+// US02 – Đăng nhập (tài khoản Admin đăng nhập ở đây sẽ tự chuyển sang Web Admin)
 import { useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { SprayCan, Shirt, CookingPot, Snowflake } from "lucide-react";
-import AuthShell from "../components/AuthShell";
+import { Eye, EyeOff, Lock, Mail } from "lucide-react";
+import AuthLayout from "../components/AuthLayout";
 import { useAuth } from "../context/AuthContext";
 import { getErrorMessage } from "../services/api";
 import { validateEmail } from "../utils/validators";
 
 export default function Login() {
-  const { login, demoLogin, demoAdmin } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
-  const from = (useLocation().state as { from?: string } | null)?.from ?? "/";
+  const from = (useLocation().state as { from?: string } | null)?.from ?? "/bookings";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [show, setShow] = useState(false);
   const [remember, setRemember] = useState(true);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>(
-    {},
-  );
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [serverError, setServerError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -31,125 +30,90 @@ export default function Login() {
     if (next.email || next.password) return;
     setLoading(true);
     try {
-      // Admin => tự chuyển sang Web Admin; khách hàng => vào trang chủ
-      const result = await login(
-        { email: email.trim().toLowerCase(), password },
-        remember,
-      );
+      const result = await login({ email: email.trim().toLowerCase(), password }, remember);
       if (result === "ok") navigate(from, { replace: true });
     } catch (err) {
       setServerError(
-        err instanceof Error && !("response" in err)
-          ? err.message
-          : getErrorMessage(err),
+        err instanceof Error && !("response" in err) ? err.message : getErrorMessage(err),
       );
     } finally {
       setLoading(false);
     }
   };
 
-  const chips = [SprayCan, Shirt, CookingPot, Snowflake];
-
   return (
-    <AuthShell
-      variant="login"
-      title="Một chạm – nhà gọn gàng"
+    <AuthLayout
+      title="Một chạm, nhà gọn gàng"
       desc="Đăng nhập để đặt dịch vụ, theo dõi Tasker và quản lý đơn của bạn."
-      footerNote="Thông tin của bạn được bảo mật · Tiền chỉ chuyển khi bạn xác nhận"
-      extra={
-        <div className="auth-chips" aria-hidden="true">
-          {chips.map((Icon, i) => (
-            <span className="auth-chip" key={i}>
-              <Icon size={27} color="#0f9b8e" />
-            </span>
-          ))}
-        </div>
-      }
+      extra="chips"
+      footNote="Thông tin của bạn được bảo mật. Tiền chỉ chuyển khi bạn xác nhận."
     >
       <form className="auth-form" onSubmit={onSubmit} noValidate>
         <h1>Chào mừng trở lại</h1>
         <p className="auth-lead">Đăng nhập bằng email và mật khẩu của bạn.</p>
         {serverError && (
-          <div className="form-error" role="alert">
+          <div className="notice notice--danger" role="alert">
             {serverError}
           </div>
         )}
-
         <div className="field">
           <label htmlFor="email">Email</label>
-          <input
-            id="email"
-            type="email"
-            autoComplete="email"
-            placeholder="vana@gmail.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            aria-invalid={!!errors.email}
-          />
+          <div className="input-icon">
+            <Mail size={18} />
+            <input
+              id="email"
+              type="email"
+              autoComplete="email"
+              placeholder="Nhập email tài khoản"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              aria-invalid={!!errors.email}
+            />
+          </div>
           {errors.email && <span className="field-error">{errors.email}</span>}
         </div>
         <div className="field">
           <label htmlFor="password">Mật khẩu</label>
-          <input
-            id="password"
-            type="password"
-            autoComplete="current-password"
-            placeholder="••••••••"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            aria-invalid={!!errors.password}
-          />
-          {errors.password && (
-            <span className="field-error">{errors.password}</span>
-          )}
-        </div>
-
-        <div className="auth-row">
-          <label className="check">
+          <div className="input-icon">
+            <Lock size={18} />
             <input
-              type="checkbox"
-              checked={remember}
-              onChange={(e) => setRemember(e.target.checked)}
-            />{" "}
-            Ghi nhớ tôi
-          </label>
-          <a href="#" className="link-teal" onClick={(e) => e.preventDefault()}>
-            Quên mật khẩu?
-          </a>
+              id="password"
+              type={show ? "text" : "password"}
+              autoComplete="current-password"
+              placeholder="Nhập mật khẩu"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              aria-invalid={!!errors.password}
+            />
+            <button
+              type="button"
+              className="icon-btn input-suffix"
+              aria-label={show ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+              onClick={() => setShow((s) => !s)}
+            >
+              {show ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
+          {errors.password && <span className="field-error">{errors.password}</span>}
         </div>
-
-        <button className="auth-submit" type="submit" disabled={loading}>
-          {loading ? "Đang đăng nhập…" : "Đăng nhập"}
+        <label className="check auth-remember">
+          <input
+            type="checkbox"
+            checked={remember}
+            onChange={(e) => setRemember(e.target.checked)}
+          />
+          Ghi nhớ đăng nhập trên máy này
+        </label>
+        <button type="submit" className="btn btn-primary btn-lg btn-block" disabled={loading}>
+          {loading ? <span className="spinner" /> : "Đăng nhập"}
         </button>
-        <div className="auth-divider">hoặc</div>
-        <Link to="/register" className="auth-secondary">
+        <div className="auth-or">
+          <span>hoặc</span>
+        </div>
+        <Link to="/register" state={{ from }} className="btn btn-outline btn-lg btn-block auth-alt">
           Tạo tài khoản mới
         </Link>
-        {import.meta.env.DEV && (
-          <>
-            <button
-              type="button"
-              className="auth-secondary"
-              onClick={() => {
-                demoLogin();
-                navigate("/booking/new");
-              }}
-            >
-              Xem thử giao diện khách hàng (không cần Backend)
-            </button>
-            <button
-              type="button"
-              className="auth-secondary"
-              onClick={demoAdmin}
-            >
-              Xem thử giao diện Admin (không cần Backend)
-            </button>
-          </>
-        )}
-        <p className="auth-note">
-          Muốn làm Tasker? Đăng ký và gửi hồ sơ trên ứng dụng di động.
-        </p>
       </form>
-    </AuthShell>
+    </AuthLayout>
   );
 }

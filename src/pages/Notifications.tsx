@@ -1,226 +1,154 @@
-// US29 - Thông báo trạng thái đơn, nhắc lịch
+// US24 – Thông báo: phân trang, lọc chưa đọc, đánh dấu đã đọc
 import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { Bell } from "lucide-react";
-import Navbar from "../components/Navbar";
+import { useNavigate } from "react-router-dom";
+import { BellOff, CheckCheck, ChevronRight, RefreshCw } from "lucide-react";
+import AppShell from "../components/AppShell";
 import { useNotifications } from "../context/NotificationContext";
 import { notificationService } from "../services/userServices";
 import { getErrorMessage } from "../services/api";
-import { isNetworkError } from "../utils/net";
-import { mockNotifications } from "../data/mockUser";
-import type { NotificationItem } from "../types";
-import "../styles/landing.css";
-import "../styles/app.css";
+import type { NotificationItem, NotificationPage } from "../types";
+import { timeAgo } from "../utils/format";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 15;
 
-function ago(iso: string) {
-  const min = Math.max(
-    0,
-    Math.round((Date.now() - new Date(iso).getTime()) / 60_000),
-  );
-  if (min < 1) return "Vừa xong";
-  if (min < 60) return `${min} phút trước`;
-  if (min < 60 * 24) return `${Math.floor(min / 60)} giờ trước`;
-  if (min < 60 * 24 * 7) return `${Math.floor(min / 60 / 24)} ngày trước`;
-  return new Intl.DateTimeFormat("vi-VN", {
-    timeZone: "Asia/Ho_Chi_Minh",
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(new Date(iso));
-}
-/** Tìm mã đơn DH000125 trong nội dung để liên kết tới chi tiết đơn */
-const orderIdOf = (n: NotificationItem) => {
-  const m = `${n.title} ${n.message}`.match(/DH0*(\d+)/);
+/** Lấy mã đơn trong nội dung ("đơn #125" hoặc "DH000125") để mở chi tiết đơn */
+const bookingIdOf = (n: NotificationItem): number | null => {
+  const text = `${n.title} ${n.message}`;
+  const m = text.match(/đơn\s*#(\d+)/i) ?? text.match(/DH0*(\d+)/);
   return m ? Number(m[1]) : null;
 };
 
 export default function Notifications() {
-  const { setUnread, refresh } = useNotifications();
-  const [tab, setTab] = useState<"all" | "unread">("all");
+  const navigate = useNavigate();
+  const { setUnread } = useNotifications();
+  const [unreadOnly, setUnreadOnly] = useState(false);
+  const [items, setItems] = useState<NotificationItem[] | null>(null);
+  const [meta, setMeta] = useState<Omit<NotificationPage, "items"> | null>(null);
   const [page, setPage] = useState(1);
-  const [items, setItems] = useState<NotificationItem[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
-  const [demo, setDemo] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const r = await notificationService.my(page, PAGE_SIZE, tab === "unread");
-      setItems(r.items);
-      setTotal(r.totalCount);
-      setUnread(r.unreadCount);
-      setDemo(false);
-    } catch (e) {
-      if (isNetworkError(e)) {
-        const all = mockNotifications().filter(
-          (n) => tab === "all" || !n.isRead,
-        );
-        setItems(all);
-        setTotal(all.length);
-        setDemo(true);
-      } else setError(getErrorMessage(e));
-    } finally {
-      setLoading(false);
-    }
-  }, [page, tab, setUnread]);
+  const load = useCallback(
+    async (p: number) => {
+      setError("");
+      if (p === 1) setItems(null);
+      else setLoadingMore(true);
+      try {
+        const r = await notificationService.my(p, PAGE_SIZE, unreadOnly);
+        setItems((cur) => (p === 1 ? r.items : [...(cur ?? []), ...r.items]));
+        setMeta({ page: r.page, pageSize: r.pageSize, totalCount: r.totalCount, unreadCount: r.unreadCount });
+        setUnread(r.unreadCount);
+        setPage(p);
+      } catch (e) {
+        setError(getErrorMessage(e));
+      } finally {
+        setLoadingMore(false);
+      }
+    },
+    [unreadOnly, setUnread],
+  );
+
   useEffect(() => {
-    load();
+    load(1);
   }, [load]);
 
-  const unreadHere = items.filter((n) => !n.isRead).length;
-  const markRead = async (n: NotificationItem) => {
-    if (n.isRead) return;
-    setItems((l) => l.map((x) => (x.id === n.id ? { ...x, isRead: true } : x)));
-    setUnread(Math.max(0, unreadHere - 1));
-    if (!demo)
-      notificationService
-        .read(n.id)
-        .then(refresh)
-        .catch(() => load());
+  const open = async (n: NotificationItem) => {
+    if (!n.isRead) {
+      setItems((l) => l?.map((x) => (x.id === n.id ? { ...x, isRead: true } : x)) ?? l);
+      setMeta((m) => (m ? { ...m, unreadCount: Math.max(0, m.unreadCount - 1) } : m));
+      setUnread(Math.max(0, (meta?.unreadCount ?? 1) - 1));
+      notificationService.read(n.id).catch(() => undefined);
+    }
+    const id = bookingIdOf(n);
+    if (id) navigate(`/bookings/${id}`);
   };
-  const markAll = async () => {
+
+  const readAll = async () => {
     try {
-      if (!demo) await notificationService.readAll();
-      setItems((l) => l.map((x) => ({ ...x, isRead: true })));
+      await notificationService.readAll();
+      setItems((l) => (unreadOnly ? [] : (l?.map((x) => ({ ...x, isRead: true })) ?? l)));
+      setMeta((m) => (m ? { ...m, unreadCount: 0 } : m));
       setUnread(0);
-      if (tab === "unread") setItems([]);
     } catch (e) {
       setError(getErrorMessage(e));
     }
   };
 
-  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const hasMore = !!meta && !!items && items.length < meta.totalCount;
 
   return (
-    <>
-      <Navbar variant="app" />
-      <main className="app-page">
-        <div className="container narrow">
-          <div className="page-head">
-            <h1 className="page-title">Thông báo</h1>
-            <button
-              type="button"
-              className="btn btn-outline btn-sm"
-              onClick={markAll}
-              disabled={unreadHere === 0 && tab === "all"}
-            >
-              Đánh dấu tất cả đã đọc
-            </button>
-          </div>
-          {demo && (
-            <div className="form-info">
-              Chưa kết nối được Backend – đang hiển thị dữ liệu mẫu.
-            </div>
-          )}
-          <div className="chip-row orders-filters" role="tablist">
-            {(
-              [
-                ["all", "Tất cả"],
-                ["unread", "Chưa đọc"],
-              ] as const
-            ).map(([k, label]) => (
-              <button
-                key={k}
-                role="tab"
-                aria-selected={tab === k}
-                type="button"
-                className={`chip${tab === k ? " chip--on" : ""}`}
-                onClick={() => {
-                  setTab(k);
-                  setPage(1);
-                }}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+    <AppShell narrow>
+      <div className="page-head">
+        <div>
+          <h1 className="page-title">Thông báo</h1>
+          <p className="page-sub">{meta ? `${meta.unreadCount} thông báo chưa đọc` : "Đang tải…"}</p>
+        </div>
+        <button type="button" className="btn btn-outline btn-sm" onClick={readAll} disabled={!meta?.unreadCount}>
+          <CheckCheck size={16} /> Đánh dấu đã đọc hết
+        </button>
+      </div>
 
-          {loading && <p className="muted">Đang tải thông báo…</p>}
-          {error && (
-            <div className="form-error" role="alert">
-              {error}{" "}
-              <button className="link-teal" onClick={load}>
-                Thử lại
-              </button>
-            </div>
-          )}
-          {!loading && !error && items.length === 0 && (
-            <div className="empty">
-              <p>
-                {tab === "unread"
-                  ? "Bạn đã đọc hết thông báo."
-                  : "Bạn chưa có thông báo nào."}
-              </p>
-            </div>
-          )}
+      <div className="chips noti-filter" role="radiogroup" aria-label="Lọc thông báo">
+        <button type="button" role="radio" className="chip" aria-checked={!unreadOnly} onClick={() => setUnreadOnly(false)}>
+          Tất cả
+        </button>
+        <button type="button" role="radio" className="chip" aria-checked={unreadOnly} onClick={() => setUnreadOnly(true)}>
+          Chưa đọc
+        </button>
+      </div>
 
-          <ul className="noti-list">
+      {error && (
+        <div className="notice notice--danger" role="alert">
+          {error}
+          <button type="button" className="link notice-action" onClick={() => load(1)}>
+            <RefreshCw size={14} /> Thử lại
+          </button>
+        </div>
+      )}
+
+      {!items && !error ? (
+        <div className="noti-list">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="skeleton" style={{ height: 74 }} />
+          ))}
+        </div>
+      ) : items && items.length === 0 ? (
+        <div className="panel empty">
+          <div className="empty-icon">
+            <BellOff size={26} />
+          </div>
+          <h3>{unreadOnly ? "Bạn đã đọc hết thông báo" : "Chưa có thông báo"}</h3>
+          <p>Thông báo về đơn, thanh toán và khiếu nại sẽ hiện ở đây.</p>
+        </div>
+      ) : (
+        items && (
+          <ul className="panel noti-list">
             {items.map((n) => {
-              const oid = orderIdOf(n);
+              const linked = bookingIdOf(n) != null;
               return (
-                <li
-                  key={n.id}
-                  className={`noti${n.isRead ? "" : " noti--unread"}`}
-                >
-                  <button
-                    type="button"
-                    className="noti-main"
-                    onClick={() => markRead(n)}
-                  >
-                    <span className="noti-icon">
-                      <Bell size={18} color="#0f9b8e" />
-                    </span>
-                    <span className="noti-text">
+                <li key={n.id}>
+                  <button type="button" className={`noti${n.isRead ? "" : " noti--unread"}`} onClick={() => open(n)}>
+                    <span className="noti-dot" aria-label={n.isRead ? "Đã đọc" : "Chưa đọc"} />
+                    <span className="noti-body">
                       <b>{n.title}</b>
                       <span>{n.message}</span>
-                      <small>{ago(n.createdAt)}</small>
+                      <small>{timeAgo(n.createdAt)}</small>
                     </span>
-                    {!n.isRead && (
-                      <i className="noti-dot" aria-label="Chưa đọc" />
-                    )}
+                    {linked && <ChevronRight size={18} className="noti-go" />}
                   </button>
-                  {oid && (
-                    <Link
-                      to={`/bookings/${oid}`}
-                      className="noti-link"
-                      onClick={() => markRead(n)}
-                    >
-                      Xem đơn
-                    </Link>
-                  )}
                 </li>
               );
             })}
           </ul>
-
-          {pages > 1 && (
-            <div className="pager">
-              <button
-                type="button"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
-              >
-                ← Trước
-              </button>
-              <span>
-                Trang {page} / {pages}
-              </span>
-              <button
-                type="button"
-                disabled={page >= pages}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                Sau →
-              </button>
-            </div>
-          )}
+        )
+      )}
+      {hasMore && (
+        <div className="pager">
+          <button type="button" className="btn btn-outline" onClick={() => load(page + 1)} disabled={loadingMore}>
+            {loadingMore ? <span className="spinner" /> : "Xem thêm"}
+          </button>
         </div>
-      </main>
-    </>
+      )}
+    </AppShell>
   );
 }

@@ -9,8 +9,6 @@ import {
 } from "react";
 import { useAuth } from "./AuthContext";
 import { notificationService } from "../services/userServices";
-import { isNetworkError } from "../utils/net";
-import { mockNotifications } from "../data/mockUser";
 
 interface Ctx {
   unreadCount: number;
@@ -33,13 +31,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     notificationService
       .my(1, 1)
       .then((r) => setUnread(r.unreadCount))
-      .catch((e) =>
-        setUnread(
-          isNetworkError(e)
-            ? mockNotifications().filter((n) => !n.isRead).length
-            : 0,
-        ),
-      );
+      .catch(() => undefined); // lỗi mạng: giữ số cũ, lần sau gọi lại
   }, [user]);
 
   useEffect(() => {

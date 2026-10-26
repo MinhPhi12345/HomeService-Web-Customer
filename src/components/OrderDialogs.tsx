@@ -65,19 +65,19 @@ export function CancelDialog({ booking, onClose, onDone }: DialogProps) {
       {!fee && !error && <p>Đang tính phí hủy…</p>}
       {fee && (
         <>
-          <p>{fee.reason}</p>
-          <div className="summary-line">
+          <div className="notice notice--warn">{fee.reason}</div>
+          <div className="kv">
             <span>Phí hủy</span>
             <b>{formatVND(fee.cancellationFee)}</b>
           </div>
-          <div className="summary-line">
+          <div className="kv">
             <span>Số tiền được hoàn</span>
             <b>{formatVND(fee.refundAmount)}</b>
           </div>
         </>
       )}
       {error && (
-        <div className="form-error" role="alert">
+        <div className="notice notice--danger" role="alert">
           {error}
         </div>
       )}
@@ -127,7 +127,7 @@ export function ReviewDialog({ booking, onClose, onDone }: DialogProps) {
         </>
       }
     >
-      <div className="stars" role="radiogroup" aria-label="Số sao">
+      <div className="stars-pick" role="radiogroup" aria-label="Số sao">
         {[1, 2, 3, 4, 5].map((n) => (
           <button
             key={n}
@@ -156,7 +156,7 @@ export function ReviewDialog({ booking, onClose, onDone }: DialogProps) {
         />
       </div>
       {error && (
-        <div className="form-error" role="alert">
+        <div className="notice notice--danger" role="alert">
           {error}
         </div>
       )}
@@ -241,13 +241,13 @@ export function DisputeDialog({
       }
     >
       {claimPaid && (
-        <div className="form-info">
+        <div className="notice">
           Hãy mô tả bạn đã trả tiền mặt cho Tasker khi nào và đính kèm ảnh bằng
           chứng. Quản trị viên sẽ xác minh và có thể hủy khoản nợ.
         </div>
       )}
       {!claimPaid && booking.paymentMethod === 0 && (
-        <div className="form-info">
+        <div className="notice">
           Đơn tiền mặt: hệ thống không giữ tiền nên không hoàn tiền qua hệ
           thống. Kết quả chỉ có thể là bác khiếu nại hoặc yêu cầu làm lại.
         </div>
@@ -280,17 +280,22 @@ export function DisputeDialog({
         <label htmlFor="ev">Ảnh bằng chứng (1–5 ảnh JPG/PNG, ≤ 5 MB)</label>
         <input
           id="ev"
+          className="file-input"
           type="file"
           accept="image/jpeg,image/png"
           multiple
           onChange={(e) => pick(e.target.files)}
         />
         {files.length > 0 && (
-          <span className="muted">Đã chọn {files.length} ảnh</span>
+          <div className="thumbs">
+            {files.map((f, i) => (
+              <img key={i} src={URL.createObjectURL(f)} alt={`Ảnh bằng chứng ${i + 1}`} />
+            ))}
+          </div>
         )}
       </div>
       {error && (
-        <div className="form-error" role="alert">
+        <div className="notice notice--danger" role="alert">
           {error}
         </div>
       )}
@@ -377,7 +382,7 @@ export function RetryDialog({ booking, onClose, onDone }: DialogProps) {
         </div>
       )}
       {error && (
-        <div className="form-error" role="alert">
+        <div className="notice notice--danger" role="alert">
           {error}
         </div>
       )}
@@ -431,7 +436,7 @@ export function PayDialog({
         Đơn #{orderCode(booking.id)} · chỉ thanh toán bằng ví điện tử hoặc thẻ
         (giả lập, không trừ tiền thật).
       </p>
-      <div className="pay-row" role="radiogroup" aria-label="Phương thức">
+      <div className="pay-grid pay-grid--2" role="radiogroup" aria-label="Phương thức">
         {(
           [
             [1, "Ví điện tử", "MoMo, ZaloPay…"],
@@ -443,18 +448,16 @@ export function PayDialog({
             type="button"
             role="radio"
             aria-checked={method === m}
-            className={`pay-opt${method === m ? " pay-opt--on" : ""}`}
+            className="pay-opt"
             onClick={() => setMethod(m)}
           >
-            <b>
-              {method === m ? "◉" : "○"}&nbsp; {t}
-            </b>
-            <span>{sub}</span>
+            <b>{t}</b>
+            <small>{sub}</small>
           </button>
         ))}
       </div>
       {error && (
-        <div className="form-error" role="alert">
+        <div className="notice notice--danger" role="alert">
           {error}
         </div>
       )}

@@ -7,7 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import { authService } from "../services/authService";
-import { DEMO_TOKEN, storage } from "../services/api";
+import { storage } from "../services/api";
 import { buildHandoffUrl } from "../utils/handoff";
 import {
   UserRole,
@@ -25,8 +25,6 @@ interface AuthState {
   login: (b: LoginRequest, remember?: boolean) => Promise<"ok" | "redirected">;
   register: (b: RegisterRequest) => Promise<void>;
   logout: () => Promise<void>;
-  demoLogin: () => void;
-  demoAdmin: () => void;
   /** Cập nhật tên hiển thị sau khi sửa hồ sơ */
   updateName: (fullName: string) => void;
 }
@@ -88,7 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       if (res.role !== UserRole.Customer)
         throw new Error(
-          "Tasker dùng ứng dụng di động HomeService, không đăng nhập được ở website.",
+          "Tài khoản Tasker dùng ứng dụng HomeService trên điện thoại. Tải ứng dụng ở trang chủ.",
         );
       save(res, remember);
       return "ok";
@@ -104,33 +102,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
-  const demoLogin = useCallback(() => {
-    const u: User = {
-      userId: 0,
-      fullName: "Nguyễn Văn Minh",
-      email: "demo@homeservice.vn",
-      role: 0,
-    };
-    localStorage.setItem(storage.TOKEN_KEY, DEMO_TOKEN);
-    localStorage.setItem(storage.USER_KEY, JSON.stringify(u));
-    setUser(u);
-  }, []);
-
-  // Xem thử giao diện Admin (chỉ dùng khi chạy dev, không cần Backend)
-  const demoAdmin = useCallback(() => {
-    const user = {
-      userId: 0,
-      fullName: "Admin",
-      email: "admin@homeservice.vn",
-      role: UserRole.Admin,
-    };
-    window.location.href = buildHandoffUrl(ADMIN_URL, {
-      token: DEMO_TOKEN,
-      user,
-      remember: true,
-    });
-  }, []);
-
   const updateName = useCallback((fullName: string) => {
     setUser((u) => {
       if (!u) return u;
@@ -143,8 +114,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ user, login, register, logout, demoLogin, demoAdmin, updateName }),
-    [user, login, register, logout, demoLogin, demoAdmin, updateName],
+    () => ({ user, login, register, logout, updateName }),
+    [user, login, register, logout, updateName],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

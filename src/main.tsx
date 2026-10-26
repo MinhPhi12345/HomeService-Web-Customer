@@ -4,7 +4,15 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import { NotificationProvider } from "./context/NotificationContext";
+// Phông Be Vietnam Pro tự host (không phụ thuộc Google Fonts)
+import "@fontsource/be-vietnam-pro/400.css";
+import "@fontsource/be-vietnam-pro/500.css";
+import "@fontsource/be-vietnam-pro/600.css";
+import "@fontsource/be-vietnam-pro/700.css";
+import "@fontsource/be-vietnam-pro/800.css";
 import "./styles/global.css";
+import "./styles/shell.css";
+import "./styles/pages.css";
 import { consumeHandoff } from "./utils/handoff";
 import { UserRole } from "./types";
 

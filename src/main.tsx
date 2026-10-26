@@ -1,16 +1,31 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import { BrowserRouter } from 'react-router-dom'
-import './index.css'
-import App from './App.tsx'
-import { AuthProvider } from './context/AuthContext.tsx'
+import React from "react";
+import ReactDOM from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
+import App from "./App";
+import { AuthProvider } from "./context/AuthContext";
+import { NotificationProvider } from "./context/NotificationContext";
+// Phông Be Vietnam Pro tự host (không phụ thuộc Google Fonts)
+import "@fontsource/be-vietnam-pro/400.css";
+import "@fontsource/be-vietnam-pro/500.css";
+import "@fontsource/be-vietnam-pro/600.css";
+import "@fontsource/be-vietnam-pro/700.css";
+import "@fontsource/be-vietnam-pro/800.css";
+import "./styles/global.css";
+import "./styles/shell.css";
+import "./styles/pages.css";
+import { consumeHandoff } from "./utils/handoff";
+import { UserRole } from "./types";
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
+consumeHandoff(UserRole.Customer); // nhận phiên đăng nhập khách hàng chuyển từ Web Admin (nếu có)
+
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  <React.StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <App />
+        <NotificationProvider>
+          <App />
+        </NotificationProvider>
       </AuthProvider>
     </BrowserRouter>
-  </StrictMode>,
-)
+  </React.StrictMode>,
+);

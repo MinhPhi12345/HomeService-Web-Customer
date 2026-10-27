@@ -1,0 +1,13 @@
+{
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": ["/assets/*", "/downloads/*", "/*.{png,jpg,jpeg,svg,ico,webp,woff,woff2,json,txt,apk}"]
+  },
+  "mimeTypes": {
+    ".apk": "application/vnd.android.package-archive"
+  },
+  "globalHeaders": {
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "strict-origin-when-cross-origin"
+  }
+}

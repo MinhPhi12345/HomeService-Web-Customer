@@ -7,7 +7,9 @@ import AppShell from "../components/AppShell";
 import OrderActions from "../components/OrderActions";
 import MapView from "../components/MapView";
 import { Toast } from "../components/Modal";
-import { iconForService } from "../components/ServiceIcon";
+import ServiceBadge from "../components/ServiceBadge";
+import { useServiceIcons } from "../components/useServiceIcons";
+import { mediaUrl } from "../utils/media";
 import { useNow } from "../hooks/useNow";
 import { bookingService, disputeService, reviewService } from "../services/bookingService";
 import { getErrorMessage } from "../services/api";
@@ -44,6 +46,7 @@ const Stars = ({ n, size = 14 }: { n: number; size?: number }) => (
 export default function BookingDetail() {
   const { id } = useParams();
   const bookingId = Number(id);
+  const icons = useServiceIcons();
   const location = useLocation();
   const navigate = useNavigate();
   const now = useNow();
@@ -181,7 +184,6 @@ export default function BookingDetail() {
     );
 
   const meta = STATUS_META[b.status] ?? { label: `Trạng thái ${b.status}`, tone: "gray" as const };
-  const { Icon, bg, fg } = iconForService(b.serviceCategoryName);
   const step = STEP_OF[b.status];
   const home = b.latitude != null && b.longitude != null ? { lat: b.latitude, lng: b.longitude } : null;
   const phone = b.contactPhone ?? b.customerPhone;
@@ -209,9 +211,7 @@ export default function BookingDetail() {
 
       <section className="panel detail-head">
         <div className="dh-top">
-          <span className="svc-icon svc-icon--lg" style={{ background: bg, color: fg }}>
-            <Icon size={26} />
-          </span>
+          <ServiceBadge name={b.serviceCategoryName} iconUrl={icons[b.serviceCategoryId ?? 0]} size={26} className="svc-icon svc-icon--lg" />
           <div className="dh-title">
             <h1>{b.serviceCategoryName}</h1>
             <span className="muted">Đơn #{orderCode(b.id)}</span>
@@ -306,8 +306,8 @@ export default function BookingDetail() {
                 ).map(([label, url]) => (
                   <figure key={label}>
                     {url ? (
-                      <a href={url} target="_blank" rel="noreferrer">
-                        <img src={url} alt={label} />
+                      <a href={mediaUrl(url)} target="_blank" rel="noreferrer">
+                        <img src={mediaUrl(url)} alt={label} />
                       </a>
                     ) : (
                       <div className="photo-ph">
@@ -424,8 +424,8 @@ export default function BookingDetail() {
               {dispute.evidenceUrls.length > 0 && (
                 <div className="thumbs">
                   {dispute.evidenceUrls.map((u) => (
-                    <a key={u} href={u} target="_blank" rel="noreferrer">
-                      <img src={u} alt="Ảnh bằng chứng" />
+                    <a key={u} href={mediaUrl(u)} target="_blank" rel="noreferrer">
+                      <img src={mediaUrl(u)} alt="Ảnh bằng chứng" />
                     </a>
                   ))}
                 </div>

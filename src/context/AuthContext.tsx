@@ -16,7 +16,7 @@ import {
   type RegisterRequest,
 } from "../types";
 
-const ADMIN_URL = import.meta.env.VITE_ADMIN_URL ?? "http://localhost:5174";
+const ADMIN_URL = import.meta.env.VITE_ADMIN_URL ?? "https://admin.homeservice.id.vn";
 
 type User = Omit<AuthResponse, "accessToken" | "expiresAt">;
 interface AuthState {

@@ -5,7 +5,8 @@ import { CalendarDays, ClipboardList, MapPin, Plus, RefreshCw, Search } from "lu
 import AppShell from "../components/AppShell";
 import OrderActions from "../components/OrderActions";
 import { Toast } from "../components/Modal";
-import { iconForService } from "../components/ServiceIcon";
+import ServiceBadge from "../components/ServiceBadge";
+import { useServiceIcons } from "../components/useServiceIcons";
 import { useNow } from "../hooks/useNow";
 import { bookingService } from "../services/bookingService";
 import { getErrorMessage } from "../services/api";
@@ -17,6 +18,7 @@ const ACTIVE = [0, 1, 2, 3, 10]; // đang diễn ra => tự tải lại
 
 export default function Orders() {
   const now = useNow();
+  const icons = useServiceIcons();
   const [params, setParams] = useSearchParams();
   const filter = FILTERS.some((f) => f.key === params.get("tab")) ? params.get("tab")! : "all";
   const [orders, setOrders] = useState<BookingResponse[] | null>(null);
@@ -136,13 +138,10 @@ export default function Orders() {
         <ul className="order-list">
           {orders.map((o) => {
             const meta = STATUS_META[o.status] ?? { label: `Trạng thái ${o.status}`, tone: "gray" as const };
-            const { Icon, bg, fg } = iconForService(o.serviceCategoryName);
             return (
               <li key={o.id} className="order">
                 <Link to={`/bookings/${o.id}`} className="order-main">
-                  <span className="svc-icon" style={{ background: bg, color: fg }}>
-                    <Icon size={22} />
-                  </span>
+                  <ServiceBadge name={o.serviceCategoryName} iconUrl={icons[o.serviceCategoryId ?? 0]} size={22} />
                   <div className="order-info">
                     <div className="order-top">
                       <h3>{o.serviceCategoryName}</h3>

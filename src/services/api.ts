@@ -40,7 +40,7 @@ api.interceptors.response.use(
 export function getErrorMessage(error: unknown): string {
   if (axios.isAxiosError(error)) {
     if (!error.response)
-      return "Không kết nối được máy chủ. Kiểm tra mạng hoặc Backend rồi thử lại.";
+      return "Không kết nối được máy chủ. Vui lòng kiểm tra kết nối mạng rồi thử lại.";
     const data = error.response.data as
       { message?: string; errors?: Record<string, string[]> } | undefined;
     if (data?.message) return data.message;

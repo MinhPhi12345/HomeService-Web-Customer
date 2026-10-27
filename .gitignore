@@ -25,3 +25,6 @@ dist-ssr
 
 # Biến môi trường cục bộ (copy từ .env.example)
 .env
+
+# File APK nặng – không commit, script build-deploy.ps1 tự chép vào bản deploy
+public/downloads/*.apk

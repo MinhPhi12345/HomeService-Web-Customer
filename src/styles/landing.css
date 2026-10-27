@@ -1410,3 +1410,11 @@
     width: 100%;
   }
 }
+.marquee-ico {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex: none;
+}

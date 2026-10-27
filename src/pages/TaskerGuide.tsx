@@ -2,7 +2,7 @@
 import { Camera, CircleAlert, IdCard, MapPin, Wallet, Wrench } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { DownloadButton, DownloadQr } from "../components/AppDownload";
+import { DownloadButton, DownloadQr, InstallHelp } from "../components/AppDownload";
 import "../styles/landing.css";
 
 const STEPS = [
@@ -48,6 +48,7 @@ export default function TaskerGuide() {
               <div className="tg-cta">
                 <DownloadButton />
               </div>
+              <InstallHelp />
             </div>
             <DownloadQr />
           </div>

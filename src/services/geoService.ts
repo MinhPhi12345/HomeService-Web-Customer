@@ -118,7 +118,7 @@ export function currentPosition(): Promise<{ lat: number; lng: number }> {
     if (!window.isSecureContext)
       return reject(
         new Error(
-          "Trình duyệt chỉ cho lấy vị trí khi mở web bằng localhost hoặc https. Hãy ghim trên bản đồ hoặc tìm địa chỉ.",
+          "Trình duyệt không cho lấy vị trí trên trang này. Hãy ghim trên bản đồ hoặc tìm địa chỉ.",
         ),
       );
     if (!navigator.geolocation) return reject(new Error("Trình duyệt không hỗ trợ định vị."));

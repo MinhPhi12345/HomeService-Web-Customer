@@ -24,8 +24,9 @@ import {
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import Reveal from "../components/Reveal";
-import { DownloadButton, DownloadQr } from "../components/AppDownload";
+import { DownloadButton, DownloadQr, InstallHelp } from "../components/AppDownload";
 import { iconForService } from "../components/ServiceIcon";
+import ServiceBadge from "../components/ServiceBadge";
 import { useServices } from "../hooks/useServices";
 import { useAuth } from "../context/AuthContext";
 import { formatVND } from "../utils/format";
@@ -190,12 +191,9 @@ function ServiceMarquee({ services }: { services: ServiceCategory[] | null }) {
         {[0, 1].map((k) => (
           <div className="marquee-group" key={k} aria-hidden={k === 1}>
             {row.map((s, i) => {
-              const { Icon, bg, fg } = iconForService(s.name);
               return (
                 <span className="marquee-item" key={`${k}-${i}`}>
-                  <i style={{ background: bg, color: fg }}>
-                    <Icon size={18} />
-                  </i>
+                  <ServiceBadge name={s.name} iconUrl={s.iconUrl} size={18} className="marquee-ico" />
                   {s.name}
                   <small>
                     từ {formatVND(s.basePrice)}/{s.unit}
@@ -243,13 +241,10 @@ function QuickBook({ services, error, reload }: ReturnType<typeof useServices>) 
       ) : (
         <div className="qb-list" role="radiogroup" aria-label="Dịch vụ">
           {services.slice(0, 5).map((s) => {
-            const { Icon, bg, fg } = iconForService(s.name);
             const on = s.id === id;
             return (
               <button key={s.id} type="button" role="radio" aria-checked={on} className="qb-item" onClick={() => setId(s.id)}>
-                <span className="svc-icon" style={{ background: bg, color: fg }}>
-                  <Icon size={20} />
-                </span>
+                <ServiceBadge name={s.name} iconUrl={s.iconUrl} size={20} />
                 <span className="qb-name">
                   <b>{s.name}</b>
                   <small>
@@ -359,7 +354,7 @@ export default function Landing() {
           <div className="container">
             <Reveal className="section-head section-head--center">
               <h2>Một hệ thống, ba cách sử dụng</h2>
-              <p>Khách hàng, Tasker và quản trị viên dùng chung một Backend và một cơ sở dữ liệu, nên mọi thay đổi của đơn hiện ở cả ba nơi.</p>
+              <p>Khách hàng, Tasker và quản trị viên dùng chung một máy chủ và một cơ sở dữ liệu, nên mọi thay đổi của đơn hiện ở cả ba nơi.</p>
             </Reveal>
             <div className="parts">
               {SYSTEM_PARTS.map(({ Icon, name, text, points }, i) => (
@@ -402,14 +397,7 @@ export default function Landing() {
                   s ? (
                     <Reveal key={s.id} delay={(i % 4) * 80}>
                       <Link to={`/booking/new?serviceId=${s.id}`} className="svc-card">
-                        {(() => {
-                          const { Icon, bg, fg } = iconForService(s.name);
-                          return (
-                            <span className="svc-icon svc-icon--lg" style={{ background: bg, color: fg }}>
-                              <Icon size={26} />
-                            </span>
-                          );
-                        })()}
+                        <ServiceBadge name={s.name} iconUrl={s.iconUrl} size={26} className="svc-icon svc-icon--lg" />
                         <h3>{s.name}</h3>
                         {s.description && <p>{s.description}</p>}
                         <div className="svc-card-foot">
@@ -535,14 +523,7 @@ export default function Landing() {
                 </li>
               </ul>
               <DownloadButton />
-              <details className="install-help">
-                <summary>Cách cài file APK</summary>
-                <ol>
-                  <li>Tải file HomeService.apk về điện thoại.</li>
-                  <li>Mở file vừa tải. Nếu máy hỏi, cho phép “Cài đặt ứng dụng không rõ nguồn gốc” cho trình duyệt.</li>
-                  <li>Mở ứng dụng và đăng nhập bằng tài khoản đã đăng ký trên website.</li>
-                </ol>
-              </details>
+              <InstallHelp />
             </Reveal>
             <Reveal delay={120}>
               <DownloadQr />

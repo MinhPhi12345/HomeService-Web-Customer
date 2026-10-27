@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import AppShell from "../components/AppShell";
 import MapView, { type LatLng } from "../components/MapView";
-import { iconForService } from "../components/ServiceIcon";
+import ServiceBadge from "../components/ServiceBadge";
 import { useServices } from "../hooks/useServices";
 import { bookingService, paymentService } from "../services/bookingService";
 import { profileService } from "../services/userServices";
@@ -359,7 +359,6 @@ export default function Booking() {
             ) : (
               <div className="svc-grid" role="radiogroup" aria-label="Dịch vụ">
                 {services.map((s) => {
-                  const { Icon, bg, fg } = iconForService(s.name);
                   return (
                     <button
                       key={s.id}
@@ -369,9 +368,7 @@ export default function Booking() {
                       className="svc-opt"
                       onClick={() => setServiceId(s.id)}
                     >
-                      <span className="svc-icon" style={{ background: bg, color: fg }}>
-                        <Icon size={21} />
-                      </span>
+                      <ServiceBadge name={s.name} iconUrl={s.iconUrl} size={21} />
                       <span>
                         <b>{s.name}</b>
                         <small>
@@ -663,14 +660,7 @@ export default function Booking() {
             <h2 className="panel-title">Tóm tắt đơn</h2>
             {service ? (
               <div className="sum-svc">
-                {(() => {
-                  const { Icon, bg, fg } = iconForService(service.name);
-                  return (
-                    <span className="svc-icon" style={{ background: bg, color: fg }}>
-                      <Icon size={22} />
-                    </span>
-                  );
-                })()}
+                <ServiceBadge name={service.name} iconUrl={service.iconUrl} size={22} />
                 <div>
                   <b>{service.name}</b>
                   <span>

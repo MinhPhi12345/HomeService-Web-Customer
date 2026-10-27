@@ -5,7 +5,7 @@
 Tạo file APK từ repo HomeService-Mobile:
 
 ```bash
-flutter build apk --release --dart-define=API_BASE_URL=http://<IP-may-chay-Backend>:8080/api
+flutter build apk --release --dart-define=API_BASE_URL=https://api.homeservice.id.vn/api
 # File tạo ra: build/app/outputs/flutter-apk/app-release.apk
 # Đổi tên thành HomeService.apk rồi chép vào thư mục này.
 ```

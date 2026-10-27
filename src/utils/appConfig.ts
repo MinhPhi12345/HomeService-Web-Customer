@@ -14,4 +14,4 @@ export const APP_DOWNLOAD = {
 
 /** Gốc của Backend (bỏ "/api") – dùng cho ảnh nền bản đồ */
 export const API_BASE: string =
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080/api";
+  import.meta.env.VITE_API_BASE_URL ?? "https://api.homeservice.id.vn/api";

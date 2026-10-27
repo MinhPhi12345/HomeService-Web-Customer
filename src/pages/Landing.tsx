@@ -24,7 +24,7 @@ import {
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import Reveal from "../components/Reveal";
-import { DownloadButton, DownloadQr } from "../components/AppDownload";
+import { DownloadButton, DownloadQr, InstallHelp } from "../components/AppDownload";
 import { iconForService } from "../components/ServiceIcon";
 import ServiceBadge from "../components/ServiceBadge";
 import { useServices } from "../hooks/useServices";
@@ -354,7 +354,7 @@ export default function Landing() {
           <div className="container">
             <Reveal className="section-head section-head--center">
               <h2>Một hệ thống, ba cách sử dụng</h2>
-              <p>Khách hàng, Tasker và quản trị viên dùng chung một Backend và một cơ sở dữ liệu, nên mọi thay đổi của đơn hiện ở cả ba nơi.</p>
+              <p>Khách hàng, Tasker và quản trị viên dùng chung một máy chủ và một cơ sở dữ liệu, nên mọi thay đổi của đơn hiện ở cả ba nơi.</p>
             </Reveal>
             <div className="parts">
               {SYSTEM_PARTS.map(({ Icon, name, text, points }, i) => (
@@ -523,14 +523,7 @@ export default function Landing() {
                 </li>
               </ul>
               <DownloadButton />
-              <details className="install-help">
-                <summary>Cách cài file APK</summary>
-                <ol>
-                  <li>Tải file HomeService.apk về điện thoại.</li>
-                  <li>Mở file vừa tải. Nếu máy hỏi, cho phép “Cài đặt ứng dụng không rõ nguồn gốc” cho trình duyệt.</li>
-                  <li>Mở ứng dụng và đăng nhập bằng tài khoản đã đăng ký trên website.</li>
-                </ol>
-              </details>
+              <InstallHelp />
             </Reveal>
             <Reveal delay={120}>
               <DownloadQr />

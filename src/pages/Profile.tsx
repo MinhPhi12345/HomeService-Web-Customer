@@ -13,6 +13,7 @@ import type { Paged, PaymentItem, ProfileResponse } from "../types";
 import { validateFullName, validatePhone } from "../utils/validators";
 import { formatDate, formatDateTime, formatVND, initials } from "../utils/format";
 import { METHOD_LABEL, PAYMENT_STATUS_LABEL, orderCode } from "../utils/booking";
+import { mediaUrl } from "../utils/media";
 
 const PAY_TONE: Record<number, string> = { 0: "blue", 1: "green", 2: "rose", 3: "amber", 4: "green", 5: "gray", 6: "gray" };
 
@@ -225,7 +226,7 @@ export default function Profile() {
             <>
               <div className="profile-avatar">
                 <span className="avatar avatar--xl">
-                  {form.avatarUrl ? <img src={form.avatarUrl} alt="Ảnh đại diện" /> : initials(form.fullName)}
+                  {form.avatarUrl ? <img src={mediaUrl(form.avatarUrl)} alt="Ảnh đại diện" /> : initials(form.fullName)}
                 </span>
                 <button
                   type="button"

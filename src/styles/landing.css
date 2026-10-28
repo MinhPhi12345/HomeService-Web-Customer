@@ -1418,3 +1418,53 @@
   place-items: center;
   flex: none;
 }
+
+/* ---------- Khu tải ứng dụng trên điện thoại ---------- */
+@media (max-width: 1024px) {
+  .download-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 760px) {
+  .download-grid {
+    gap: 32px;
+  }
+  /* Đang ở trên điện thoại thì không cần quét mã QR */
+  .download-grid .qr-card {
+    display: none;
+  }
+  .download .btn-accent {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: center;
+    row-gap: 2px;
+    white-space: normal;
+    text-align: center;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    height: auto;
+  }
+  .download .btn-accent small {
+    flex-basis: 100%;
+    margin-left: 0;
+  }
+  .install-help {
+    margin-top: 18px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    max-width: none;
+  }
+  .install-help ol {
+    padding-left: 18px;
+    gap: 8px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+  .download-copy,
+  .download-copy > p {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+}

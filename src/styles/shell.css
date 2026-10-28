@@ -390,3 +390,26 @@
     animation: none;
   }
 }
+
+/* Điện thoại màn hẹp (≤ 420px) hoặc phóng to chữ: thanh trên cùng không bị tràn ngang */
+@media (max-width: 420px) {
+  .nav-inner {
+    gap: 10px;
+  }
+  .logo {
+    font-size: 17px;
+    gap: 8px;
+  }
+  .logo-mark {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+  }
+  .nav-right {
+    gap: 4px;
+  }
+  .nav-right .btn-sm {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+}

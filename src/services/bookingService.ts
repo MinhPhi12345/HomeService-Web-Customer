@@ -10,6 +10,7 @@ import type {
   LocationResponse,
   PaymentMethod,
   PaymentResponse,
+  PublicProfile,
   ReviewItem,
   UserReviews,
 } from "../types";
@@ -68,7 +69,15 @@ export const reviewService = {
     api.get<ReviewItem[]>(`/reviews/booking/${bookingId}`).then((r) => r.data),
   forUser: (userId: number) =>
     api.get<UserReviews>(`/reviews/user/${userId}`).then((r) => r.data),
-  report: (reviewId: number) => api.post(`/reviews/${reviewId}/report`),
+  /** US27 – báo cáo đánh giá sai sự thật, bắt buộc nêu lý do (10–500 ký tự) */
+  report: (reviewId: number, reason: string) =>
+    api.post(`/reviews/${reviewId}/report`, { reason }),
+};
+
+/** US26 – hồ sơ của Tasker / khách trong đơn kèm các đánh giá đã nhận */
+export const profileService = {
+  get: (userId: number) =>
+    api.get<PublicProfile>(`/public-profiles/${userId}`).then((r) => r.data),
 };
 
 export const uploadService = {

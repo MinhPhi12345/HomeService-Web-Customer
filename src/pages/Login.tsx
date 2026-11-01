@@ -4,14 +4,16 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import AuthLayout from "../components/AuthLayout";
 import { useAuth } from "../context/AuthContext";
+import { emailNotVerified } from "../services/authService";
 import { getErrorMessage } from "../services/api";
 import { validateEmail } from "../utils/validators";
 
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const from = (useLocation().state as { from?: string } | null)?.from ?? "/bookings";
-  const [email, setEmail] = useState("");
+  const state = useLocation().state as { from?: string; email?: string; notice?: string } | null;
+  const from = state?.from ?? "/bookings";
+  const [email, setEmail] = useState(state?.email ?? "");
   const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
   const [remember, setRemember] = useState(true);
@@ -33,6 +35,21 @@ export default function Login() {
       const result = await login({ email: email.trim().toLowerCase(), password }, remember);
       if (result === "ok") navigate(from, { replace: true });
     } catch (err) {
+      // Tài khoản chưa xác thực email: server đã gửi mã OTP → mở màn nhập mã
+      const unverified = emailNotVerified(err);
+      if (unverified) {
+        navigate("/verify-email", {
+          state: {
+            email: unverified.email,
+            maskedEmail: unverified.maskedEmail,
+            resendAfterSeconds: unverified.resendAfterSeconds,
+            from,
+            remember,
+            notice: "Tài khoản chưa xác thực email. Nhập mã OTP để kích hoạt rồi đăng nhập.",
+          },
+        });
+        return;
+      }
       setServerError(
         err instanceof Error && !("response" in err) ? err.message : getErrorMessage(err),
       );
@@ -51,6 +68,11 @@ export default function Login() {
       <form className="auth-form" onSubmit={onSubmit} noValidate>
         <h1>Chào mừng trở lại</h1>
         <p className="auth-lead">Đăng nhập bằng email và mật khẩu của bạn.</p>
+        {state?.notice && !serverError && (
+          <div className="notice notice--success" role="status">
+            {state.notice}
+          </div>
+        )}
         {serverError && (
           <div className="notice notice--danger" role="alert">
             {serverError}
@@ -96,14 +118,19 @@ export default function Login() {
           </div>
           {errors.password && <span className="field-error">{errors.password}</span>}
         </div>
-        <label className="check auth-remember">
-          <input
-            type="checkbox"
-            checked={remember}
-            onChange={(e) => setRemember(e.target.checked)}
-          />
-          Ghi nhớ đăng nhập trên máy này
-        </label>
+        <div className="auth-remember-row">
+          <label className="check auth-remember">
+            <input
+              type="checkbox"
+              checked={remember}
+              onChange={(e) => setRemember(e.target.checked)}
+            />
+            Ghi nhớ đăng nhập trên máy này
+          </label>
+          <Link to="/forgot-password" className="link">
+            Quên mật khẩu?
+          </Link>
+        </div>
         <button type="submit" className="btn btn-primary btn-lg btn-block" disabled={loading}>
           {loading ? <span className="spinner" /> : "Đăng nhập"}
         </button>

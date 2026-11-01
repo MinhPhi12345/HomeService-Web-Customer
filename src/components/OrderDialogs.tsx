@@ -8,7 +8,7 @@ import {
   uploadService,
 } from "../services/bookingService";
 import { getErrorMessage } from "../services/api";
-import type { BookingResponse, CancellationFeeResponse } from "../types";
+import type { BookingResponse, CancellationFeeResponse, ReviewItem } from "../types";
 import { formatVND } from "../utils/format";
 import { orderCode } from "../utils/booking";
 
@@ -455,6 +455,90 @@ export function PayDialog({
             <small>{sub}</small>
           </button>
         ))}
+      </div>
+      {error && (
+        <div className="notice notice--danger" role="alert">
+          {error}
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+/** US27 – Báo cáo đánh giá sai sự thật: bắt buộc nêu lý do để quản trị viên có căn cứ phân xử */
+export function ReportReviewDialog({
+  review,
+  onClose,
+  onDone,
+}: {
+  review: ReviewItem;
+  onClose: () => void;
+  onDone: (reason: string) => void;
+}) {
+  const [reason, setReason] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const text = reason.trim();
+
+  const submit = async () => {
+    if (text.length < 10) {
+      setError("Vui lòng nêu lý do cụ thể (ít nhất 10 ký tự).");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      await reviewService.report(review.id, text);
+      onDone(text);
+    } catch (e) {
+      setError(getErrorMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Modal
+      title="Báo cáo đánh giá"
+      onClose={onClose}
+      footer={
+        <>
+          <button className="btn btn-outline" onClick={onClose}>
+            Đóng
+          </button>
+          <button className="btn btn-danger" onClick={submit} disabled={busy}>
+            {busy ? "Đang gửi…" : "Gửi báo cáo"}
+          </button>
+        </>
+      }
+    >
+      <div className="review-quote">
+        <div>
+          <b>{review.reviewerName}</b>{" "}
+          <span className="review-quote-stars" aria-label={`${review.rating} sao`}>
+            {"★".repeat(review.rating)}
+            <span>{"★".repeat(5 - review.rating)}</span>
+          </span>
+        </div>
+        <p>{review.comment?.trim() ? `“${review.comment}”` : "Không có nhận xét"}</p>
+      </div>
+      <div className="field">
+        <label htmlFor="rr">Vì sao đánh giá này sai sự thật hoặc không phù hợp? (10–500 ký tự)</label>
+        <textarea
+          id="rr"
+          rows={4}
+          maxLength={500}
+          value={reason}
+          placeholder="VD: Tôi đã làm đủ các hạng mục và khách đã nghiệm thu, ảnh sau khi làm có trong đơn."
+          onChange={(e) => {
+            setReason(e.target.value);
+            setError("");
+          }}
+        />
+        <small className="hint">
+          {text.length}/500 ký tự. Quản trị viên sẽ đối chiếu với chi tiết đơn rồi quyết định giữ lại hoặc gỡ đánh giá, và
+          gửi lý do cho bạn.
+        </small>
       </div>
       {error && (
         <div className="notice notice--danger" role="alert">

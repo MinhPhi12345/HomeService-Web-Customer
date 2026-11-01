@@ -12,7 +12,7 @@ const STEPS = [
   },
   {
     title: "Gửi hồ sơ xác thực",
-    text: "Nhập số CCCD kèm ảnh mặt trước, chọn kỹ năng, khu vực, điểm làm việc và bán kính nhận việc.",
+    text: "Nhập số CCCD kèm ảnh mặt trước, chọn kỹ năng, điểm làm việc và bán kính nhận việc.",
   },
   {
     title: "Chờ quản trị viên duyệt",

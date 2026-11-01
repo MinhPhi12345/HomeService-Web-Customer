@@ -144,6 +144,16 @@
 .auth-remember {
   margin: 2px 0 22px;
 }
+.auth-remember-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.auth-remember-row .link {
+  font-size: 14px;
+}
 .auth-row {
   display: grid;
   grid-template-columns: 1fr 1fr;

@@ -24,7 +24,7 @@ import AppShell from "../components/AppShell";
 import MapView, { type LatLng } from "../components/MapView";
 import ServiceBadge from "../components/ServiceBadge";
 import { useServices } from "../hooks/useServices";
-import { bookingService, paymentService } from "../services/bookingService";
+import { bookingService } from "../services/bookingService";
 import { profileService } from "../services/userServices";
 import { currentPosition, geoService, type GeoPlace } from "../services/geoService";
 import { getErrorMessage } from "../services/api";
@@ -281,14 +281,12 @@ export default function Booking() {
           .catch(() => undefined);
       }
 
-      if (method !== PaymentMethod.Cash) await paymentService.pay(booking.id, method);
+      // Đơn online: chuyển sang chi tiết đơn và mở ngay cổng thanh toán (mô phỏng)
       navigate(`/bookings/${booking.id}`, {
-        state: {
-          toast:
-            method === PaymentMethod.Cash
-              ? "Đã đặt đơn. Hệ thống đang tìm Tasker cho bạn."
-              : "Thanh toán thành công. Hệ thống đang tìm Tasker cho bạn.",
-        },
+        state:
+          method === PaymentMethod.Cash
+            ? { toast: "Đã đặt đơn. Hệ thống đang tìm Tasker cho bạn." }
+            : { openPay: true },
       });
     } catch (err) {
       if (createdId) setPayFailedId(createdId);
@@ -711,7 +709,7 @@ export default function Booking() {
               ) : method === PaymentMethod.Cash ? (
                 "Đặt đơn"
               ) : (
-                `Thanh toán ${formatVND(total)}`
+                `Đặt đơn & thanh toán ${formatVND(total)}`
               )}
             </button>
             <p className="sum-safe">

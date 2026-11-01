@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 import { Link, useSearchParams } from "react-router-dom";
 import { AlertTriangle, Camera, Crosshair, Loader2, Mail, Receipt, RefreshCw, ShieldCheck } from "lucide-react";
 import AppShell from "../components/AppShell";
+import ChangePasswordForm from "../components/ChangePasswordForm";
 import { Toast } from "../components/Modal";
 import { useAuth } from "../context/AuthContext";
 import { profileService, paymentHistoryService } from "../services/userServices";
@@ -100,7 +101,8 @@ function PaymentHistory() {
 export default function Profile() {
   const { updateName } = useAuth();
   const [params, setParams] = useSearchParams();
-  const tab = params.get("tab") === "payments" ? "payments" : "info";
+  const tabParam = params.get("tab");
+  const tab = tabParam === "payments" || tabParam === "security" ? tabParam : "info";
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
   const [loadError, setLoadError] = useState("");
   const [form, setForm] = useState({ fullName: "", phoneNumber: "", address: "", avatarUrl: "" });
@@ -292,10 +294,21 @@ export default function Profile() {
             >
               Lịch sử thanh toán
             </button>
+            <button
+              type="button"
+              role="tab"
+              className="tab"
+              aria-selected={tab === "security"}
+              onClick={() => setParams({ tab: "security" }, { replace: true })}
+            >
+              Đổi mật khẩu
+            </button>
           </div>
           <div className="profile-body">
             {tab === "payments" ? (
               <PaymentHistory />
+            ) : tab === "security" ? (
+              <ChangePasswordForm onDone={setToast} />
             ) : !profile ? (
               <div className="skeleton" style={{ height: 300 }} />
             ) : (

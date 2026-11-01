@@ -1,0 +1,62 @@
+/* ---------- Mã OTP qua email ---------- */
+.otp {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  max-width: 360px;
+}
+.otp-box,
+.field .otp input.otp-box:not([type="checkbox"]):not([type="radio"]):not([type="file"]) {
+  width: 100%;
+  height: 54px;
+  min-height: 0;
+  padding: 0;
+  border: 1.5px solid var(--line);
+  text-align: center;
+  font-size: 24px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  border-radius: 12px;
+}
+.field .otp--invalid input.otp-box:not([type="checkbox"]):not([type="radio"]):not([type="file"]) {
+  border-color: var(--danger);
+}
+.otp-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 14px;
+  border-radius: 18px;
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+}
+.otp-resend {
+  margin: 14px 0 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+.otp-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 14px;
+  font-size: 14px;
+}
+@media (max-width: 420px) {
+  .otp {
+    gap: 6px;
+  }
+  .field .otp input.otp-box:not([type="checkbox"]):not([type="radio"]):not([type="file"]) {
+    height: 46px;
+    font-size: 20px;
+  }
+}
+
+/* Đổi mật khẩu trong Hồ sơ */
+.pw-form {
+  max-width: 640px;
+}
+.pw-form > .notice {
+  margin-bottom: 16px;
+}

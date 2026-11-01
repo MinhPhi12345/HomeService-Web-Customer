@@ -46,14 +46,23 @@ export default function Register() {
     if (Object.values(next).some(Boolean)) return;
     setLoading(true);
     try {
-      await register({
+      const sent = await register({
         fullName: form.fullName.trim(),
         email: form.email.trim().toLowerCase(),
         password: form.password,
         phoneNumber: form.phoneNumber || null,
         role: 0, // Web Customer luôn tạo tài khoản khách hàng
       });
-      navigate(from, { replace: true });
+      // Tài khoản chưa kích hoạt: nhập mã OTP gửi về email
+      navigate("/verify-email", {
+        replace: true,
+        state: {
+          email: sent.email,
+          maskedEmail: sent.maskedEmail,
+          resendAfterSeconds: sent.resendAfterSeconds,
+          from,
+        },
+      });
     } catch (err) {
       setServerError(getErrorMessage(err));
     } finally {
@@ -83,7 +92,7 @@ export default function Register() {
       title="Tạo tài khoản trong 1 phút"
       desc="Đặt dịch vụ tại nhà, theo dõi Tasker và thanh toán an toàn."
       extra="checks"
-      footNote="Mật khẩu được mã hóa trước khi lưu."
+      footNote="Mật khẩu được mã hóa trước khi lưu. Mã OTP xác thực sẽ được gửi về email của bạn."
     >
       <form className="auth-form" onSubmit={onSubmit} noValidate>
         <h1>Đăng ký khách hàng</h1>
@@ -119,7 +128,7 @@ export default function Register() {
           mật của HomeService.
         </p>
         <button type="submit" className="btn btn-primary btn-lg btn-block" disabled={loading}>
-          {loading ? <span className="spinner" /> : "Tạo tài khoản"}
+          {loading ? <span className="spinner" /> : "Tạo tài khoản & nhận mã OTP"}
         </button>
         <p className="auth-switch">
           Đã có tài khoản?{" "}

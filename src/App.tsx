@@ -6,6 +6,8 @@ import { useAuth } from "./context/AuthContext";
 // Tách nhỏ bundle: trang nào mở mới tải code trang đó (bản đồ Leaflet khá nặng)
 const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
+const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const TaskerGuide = lazy(() => import("./pages/TaskerGuide"));
 const Booking = lazy(() => import("./pages/Booking"));
 const Orders = lazy(() => import("./pages/Orders"));
@@ -52,6 +54,8 @@ export default function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<GuestOnly><Login /></GuestOnly>} />
           <Route path="/register" element={<GuestOnly><Register /></GuestOnly>} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/forgot-password" element={<GuestOnly><ForgotPassword /></GuestOnly>} />
           <Route path="/tasker-guide" element={<TaskerGuide />} />
           <Route path="/booking/new" element={<RequireAuth><Booking /></RequireAuth>} />
           <Route path="/bookings" element={<RequireAuth><Orders /></RequireAuth>} />

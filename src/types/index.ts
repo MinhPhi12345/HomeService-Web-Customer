@@ -42,6 +42,17 @@ export interface AuthResponse {
   accessToken: string;
   expiresAt: string;
 }
+/** Kết quả gửi mã OTP qua email */
+export interface OtpSentResponse {
+  maskedEmail: string;
+  expiresAt: string;
+  resendAfterSeconds: number;
+}
+/** Đăng ký xong phải nhập mã OTP gửi về email mới kích hoạt */
+export interface RegisterResponse extends OtpSentResponse {
+  email: string;
+  message: string;
+}
 export interface ServiceCategory {
   id: number;
   name: string;
@@ -187,6 +198,12 @@ export interface ReviewItem {
   isFlagged: boolean;
   createdAt: string;
   revieweeName?: string;
+  /** US27 – chỉ trả cho người trong đơn: lý do báo cáo & kết quả kiểm duyệt */
+  reportReason?: string | null;
+  reportedByName?: string | null;
+  reportedAt?: string | null;
+  moderationNote?: string | null;
+  moderatedAt?: string | null;
 }
 export interface UserReviews {
   userId?: number;
@@ -215,4 +232,20 @@ export interface DisputeDetail {
   adminNote: string | null;
   createdAt: string;
   resolvedAt: string | null;
+}
+
+/** US26 – GET /api/public-profiles/{userId}: hồ sơ của bên còn lại trong đơn (người viết đánh giá chỉ hiện tên gọi) */
+export interface PublicProfile {
+  userId: number;
+  displayName: string;
+  role: number;
+  avatarUrl: string | null;
+  memberSince: string;
+  completedBookings: number;
+  reviewCount: number;
+  ratingAverage: number | null;
+  isVerified: boolean | null;
+  workingArea: string | null;
+  skills: string | null;
+  reviews: ReviewItem[];
 }

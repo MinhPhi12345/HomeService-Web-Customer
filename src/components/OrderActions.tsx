@@ -4,11 +4,11 @@ import { Phone } from "lucide-react";
 import {
   CancelDialog,
   DisputeDialog,
-  PayDialog,
   RetryDialog,
   ReviewDialog,
 } from "./OrderDialogs";
-import { bookingService, paymentService } from "../services/bookingService";
+import { ConfirmReleaseDialog, PaymentGateway } from "./PaymentGateway";
+import { bookingService } from "../services/bookingService";
 import { getErrorMessage } from "../services/api";
 import { BookingStatus, PaymentMethod, type BookingResponse } from "../types";
 
@@ -20,6 +20,8 @@ type Dlg =
   | "retry"
   | "payDebt"
   | "payFee"
+  | "pay"
+  | "release"
   | null;
 
 interface Props {
@@ -29,6 +31,8 @@ interface Props {
   onChanged: (message: string) => void;
   /** Ẩn nút "Theo dõi" khi đang ở trang chi tiết */
   inDetail?: boolean;
+  /** Mở ngay cổng thanh toán (vừa đặt đơn online xong) */
+  openPayOnLoad?: boolean;
 }
 
 /** Các nút theo trạng thái đơn – đúng bảng mục 8 của Hướng dẫn FE */
@@ -37,9 +41,12 @@ export default function OrderActions({
   serviceIds,
   onChanged,
   inDetail,
+  openPayOnLoad,
 }: Props) {
   const navigate = useNavigate();
-  const [dlg, setDlg] = useState<Dlg>(null);
+  const [dlg, setDlg] = useState<Dlg>(
+    openPayOnLoad && b.status === BookingStatus.AwaitingPayment && b.paymentMethod !== 0 ? "pay" : null,
+  );
   const [busy, setBusy] = useState(false);
   const S = BookingStatus;
 
@@ -129,12 +136,7 @@ export default function OrderActions({
       case S.AwaitingPayment:
         return [
           b.paymentMethod !== 0 &&
-            cb("pay", "Thanh toán", "btn-primary", () =>
-              run(
-                () => paymentService.pay(b.id, b.paymentMethod as 1 | 2),
-                "Thanh toán thành công.",
-              ),
-            ),
+            cb("pay", "Thanh toán ngay", "btn-primary", () => setDlg("pay")),
           cancel(),
         ];
       case S.Pending:
@@ -156,12 +158,7 @@ export default function OrderActions({
         return [track, call];
       case S.Completed:
         return [
-          cb("ok", "Xác nhận hoàn thành", "btn-primary", () =>
-            run(
-              () => bookingService.confirm(b.id),
-              "Đã xác nhận hoàn thành. Tiền được chuyển cho Tasker.",
-            ),
-          ),
+          cb("ok", "Xác nhận & thanh toán cho Tasker", "btn-primary", () => setDlg("release")),
           dispute(),
         ];
       case S.Paid:
@@ -237,20 +234,42 @@ export default function OrderActions({
       {dlg === "retry" && (
         <RetryDialog booking={b} onClose={() => setDlg(null)} onDone={done} />
       )}
+      {dlg === "pay" && (
+        <PaymentGateway
+          booking={b}
+          amount={b.totalPrice}
+          title="Thanh toán đơn hàng"
+          successNote="HomeService đang tạm giữ số tiền này và bắt đầu tìm Tasker cho bạn. Tasker chỉ nhận tiền khi bạn xác nhận hoàn thành."
+          onClose={() => setDlg(null)}
+          onDone={done}
+        />
+      )}
+      {dlg === "release" && (
+        <ConfirmReleaseDialog
+          booking={b}
+          onClose={() => setDlg(null)}
+          onDone={done}
+          onDispute={() => setDlg("dispute")}
+        />
+      )}
       {dlg === "payDebt" && (
-        <PayDialog
+        <PaymentGateway
           booking={b}
           amount={b.totalPrice}
           title="Trả khoản nợ"
+          allowChoice
+          successNote="Khoản nợ đã được thanh toán và chuyển cho Tasker. Bạn có thể đặt đơn mới."
           onClose={() => setDlg(null)}
           onDone={done}
         />
       )}
       {dlg === "payFee" && (
-        <PayDialog
+        <PaymentGateway
           booking={b}
           amount={b.cancellationFee ?? 0}
           title="Trả phí hủy"
+          allowChoice
+          successNote="Phí hủy đã được thanh toán và chuyển cho Tasker."
           onClose={() => setDlg(null)}
           onDone={done}
         />

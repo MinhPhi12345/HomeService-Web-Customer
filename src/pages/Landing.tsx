@@ -77,7 +77,7 @@ const STEPS = [
 
 const FEATURES = [
   { Icon: ShieldCheck, title: "Tiền được tạm giữ", text: "Thanh toán online nằm ở hệ thống cho tới khi bạn xác nhận công việc đã xong." },
-  { Icon: BadgeCheck, title: "Tasker đã xác thực", text: "Mỗi Tasker gửi CCCD, kỹ năng và khu vực làm việc để quản trị viên duyệt." },
+  { Icon: BadgeCheck, title: "Tasker đã xác thực", text: "Mỗi Tasker gửi CCCD, kỹ năng và điểm làm việc để quản trị viên duyệt." },
   { Icon: Camera, title: "Ảnh trước và sau", text: "Tasker chụp ảnh lúc bắt đầu và lúc xong việc để bạn đối chiếu." },
   { Icon: Scale, title: "Khiếu nại có người xử lý", text: "Gửi ảnh bằng chứng trong 24 giờ. Tiền vẫn được giữ cho tới khi có kết quả." },
   { Icon: Star, title: "Đánh giá hai chiều", text: "Khách và Tasker chấm điểm nhau sau mỗi đơn, đánh giá bất thường có thể báo cáo." },
@@ -543,7 +543,7 @@ export default function Landing() {
             </Reveal>
             <Reveal className="aud aud--tasker" delay={120}>
               <h3>Bạn muốn kiếm thêm thu nhập?</h3>
-              <p>Đăng ký làm Tasker trên ứng dụng, chọn khu vực và bán kính nhận việc, nhận 80% giá trị mỗi đơn.</p>
+              <p>Đăng ký làm Tasker trên ứng dụng, chọn điểm làm việc và bán kính nhận việc, nhận 80% giá trị mỗi đơn.</p>
               <Link to="/tasker-guide" className="btn btn-accent">
                 Xem cách trở thành Tasker <ArrowRight size={17} />
               </Link>

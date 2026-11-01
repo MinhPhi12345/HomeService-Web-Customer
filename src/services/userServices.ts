@@ -2,6 +2,7 @@
 import { api } from "./api";
 import type {
   NotificationPage,
+  OtpSentResponse,
   PaymentItem,
   Paged,
   ProfileResponse,
@@ -13,6 +14,11 @@ export const profileService = {
   // PUT phải gửi ĐỦ 4 field (Hướng dẫn 5.7)
   update: (b: UpdateProfileRequest) =>
     api.put<ProfileResponse>("/profile", b).then((r) => r.data),
+  // Đổi mật khẩu: gửi mã OTP về email rồi xác nhận kèm mật khẩu hiện tại
+  sendPasswordOtp: () =>
+    api.post<OtpSentResponse>("/profile/password/otp").then((r) => r.data),
+  changePassword: (b: { currentPassword: string; code: string; newPassword: string }) =>
+    api.put<{ message: string }>("/profile/password", b).then((r) => r.data),
 };
 
 export const notificationService = {

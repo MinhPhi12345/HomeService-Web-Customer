@@ -1127,3 +1127,85 @@ ul.noti-list {
     border-radius: 22px;
   }
 }
+
+/* US27 – báo cáo đánh giá: trích đánh giá trong hộp thoại & trạng thái báo cáo/kiểm duyệt */
+.review-quote { padding: 12px 14px; border-radius: var(--r-md); background: var(--bg); margin-bottom: 14px; }
+.review-quote p { margin: 6px 0 0; line-height: 1.5; }
+.review-quote-stars { color: #f5b301; letter-spacing: 1px; }
+.review-quote-stars span { color: var(--line); }
+.review-report { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; padding: 8px 10px; border-radius: var(--r-sm);
+  background: var(--warning-soft); font-size: 13px; line-height: 1.45; color: var(--ink-soft); }
+.review-report b { color: var(--warning); font-weight: 600; }
+.review-report--kept { background: var(--info-soft); }
+.review-report--kept b { color: var(--info); }
+
+/* US26 – hồ sơ Tasker / khách kèm đánh giá */
+.tasker-profile-btn { margin-top: 10px; }
+.avatar--img { object-fit: cover; padding: 0; }
+.pub-profile { text-align: left; }
+.pub-profile .tasker-info { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.pub-profile .sub-h { margin-top: 14px; }
+.pub-profile-verified { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; color: var(--success); }
+.pub-profile-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 16px 0 12px; }
+.pub-profile-stats > div { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 6px;
+  border-radius: var(--r-md); background: var(--bg); text-align: center; }
+.pub-profile-stats b { font-size: 20px; line-height: 1.2; }
+.pub-profile-stats span { font-size: 12.5px; color: var(--ink-soft); }
+.pub-profile-meta { display: flex; flex-direction: column; gap: 4px; font-size: 13.5px; color: var(--ink-soft); margin-bottom: 4px; }
+.pub-profile-meta span { display: inline-flex; align-items: center; gap: 5px; }
+.reviews--profile { max-height: 360px; overflow-y: auto; margin-top: 8px; padding-right: 4px; }
+.reviews--profile li:first-child { border-top: none; padding-top: 0; }
+.review-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.review-head .hint { margin-left: auto; font-size: 12px; }
+
+/* Thanh toán: tóm tắt dòng tiền + cổng thanh toán mô phỏng */
+.pay-status { display: flex; gap: 14px; align-items: flex-start; border-left: 4px solid var(--info); }
+.pay-status p { margin-top: 4px; color: var(--ink-soft); line-height: 1.5; }
+.pay-status-icon { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; flex: none;
+  background: var(--info-soft); color: var(--info); }
+.pay-status--warn { border-left-color: var(--warning); background: #fffdf6; }
+.pay-status--warn .pay-status-icon { background: var(--warning-soft); color: var(--warning); }
+.pay-status--teal { border-left-color: var(--primary); }
+.pay-status--teal .pay-status-icon { background: var(--primary-soft); color: var(--primary-dark); }
+.pay-status--success { border-left-color: var(--success); }
+.pay-status--success .pay-status-icon { background: var(--success-soft); color: var(--success); }
+.pay-status--danger { border-left-color: var(--danger); }
+.pay-status--danger .pay-status-icon { background: var(--danger-soft); color: var(--danger); }
+.gw { display: flex; flex-direction: column; gap: 14px; text-align: left; }
+.gw-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 16px;
+  border-radius: var(--r-md); background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: #fff; }
+.gw-head > div { display: flex; flex-direction: column; }
+.gw-merchant { font-size: 12.5px; opacity: .85; }
+.gw-service { font-weight: 700; }
+.gw-head strong { font-size: 22px; white-space: nowrap; }
+.gw-fixed { margin: 0; }
+.pay-opt { position: relative; }
+.pay-opt svg { color: var(--primary-dark); }
+.gw-qr { display: flex; gap: 16px; align-items: center; padding: 14px; border: 1px dashed var(--line); border-radius: var(--r-md); }
+.gw-qr svg { flex: none; border-radius: 8px; }
+.gw-qr b { display: inline-flex; gap: 6px; align-items: center; }
+.gw-qr p { margin-top: 6px; color: var(--ink-soft); font-size: 14px; }
+.gw-card { display: flex; flex-direction: column; gap: 10px; padding: 14px; border: 1px solid var(--line); border-radius: var(--r-md); }
+.gw-card label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--ink-soft); }
+.gw-card input { height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg);
+  font: inherit; color: var(--ink); letter-spacing: 1px; }
+.gw-card-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.gw-secure { display: flex; gap: 6px; align-items: center; font-size: 12.5px; color: var(--muted); margin: 0; }
+.gw-success { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; color: var(--success); }
+.gw-success strong { font-size: 26px; color: var(--ink); }
+.gw-success p { color: var(--ink-soft); max-width: 380px; }
+.gw-receipt { width: 100%; margin-top: 8px; text-align: left; color: var(--ink); }
+.gw-flow { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.gw-flow > div { display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; border-radius: 10px; background: var(--bg); }
+.gw-flow span { color: var(--ink-soft); }
+.gw-flow b { white-space: nowrap; }
+.gw-flow-to { background: var(--primary-soft) !important; }
+.gw-flow-to b { color: var(--primary-dark); }
+@media (max-width: 560px) { .gw-qr { flex-direction: column; text-align: center; } .gw-head strong { font-size: 18px; } }
+.pay-status-body { flex: 1; min-width: 0; }
+.pay-status-timer { display: flex; flex-direction: column; align-items: flex-end; flex: none; padding: 6px 12px;
+  border-radius: 12px; background: var(--warning-soft); color: var(--warning); }
+.pay-status-timer span { font-size: 12px; }
+.pay-status-timer b { font-size: 20px; }
+@media (max-width: 560px) { .pay-status { flex-wrap: wrap; } .pay-status-timer { flex-direction: row; gap: 8px; align-items: center; } }
+.pay-status { margin: 16px 0; }

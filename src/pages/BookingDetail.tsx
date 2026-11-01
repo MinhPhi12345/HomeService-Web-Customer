@@ -2,9 +2,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
-import { ArrowLeft, Camera, Clock, Flag, Phone, RefreshCw, Star } from "lucide-react";
+import { ArrowLeft, Camera, Flag, Phone, RefreshCw, Star, UserRound } from "lucide-react";
 import AppShell from "../components/AppShell";
 import OrderActions from "../components/OrderActions";
+import { ReportReviewDialog } from "../components/OrderDialogs";
+import ProfileDialog from "../components/ProfileDialog";
+import PaymentStatusPanel from "../components/PaymentStatusPanel";
 import MapView from "../components/MapView";
 import { Toast } from "../components/Modal";
 import ServiceBadge from "../components/ServiceBadge";
@@ -21,7 +24,6 @@ import {
   METHOD_LABEL,
   PAYMENT_STATUS_LABEL,
   STATUS_META,
-  countdown,
   describe,
   orderCode,
 } from "../utils/booking";
@@ -58,6 +60,7 @@ export default function BookingDetail() {
   const [loc, setLoc] = useState<LocationResponse | null>(null);
   const [locMsg, setLocMsg] = useState("");
   const [toast, setToast] = useState((location.state as { toast?: string } | null)?.toast ?? "");
+  const [openPay] = useState(Boolean((location.state as { openPay?: boolean } | null)?.openPay));
   const closeToast = useCallback(() => setToast(""), []);
 
   // Xóa toast khỏi history để F5 không hiện lại
@@ -148,14 +151,16 @@ export default function BookingDetail() {
     };
   }, [b?.id, tracking]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const report = async (r: ReviewItem) => {
-    try {
-      await reviewService.report(r.id);
-      setToast("Đã gửi báo cáo đánh giá cho quản trị viên.");
-      setReviews((l) => l.map((x) => (x.id === r.id ? { ...x, isFlagged: true } : x)));
-    } catch (e) {
-      setToast(getErrorMessage(e));
-    }
+  const [reporting, setReporting] = useState<ReviewItem | null>(null);
+  const [profileOf, setProfileOf] = useState<number | null>(null);
+  const reported = (r: ReviewItem, reason: string) => {
+    setReporting(null);
+    setToast("Đã gửi báo cáo kèm lý do cho quản trị viên.");
+    setReviews((l) =>
+      l.map((x) =>
+        x.id === r.id ? { ...x, isFlagged: true, reportReason: reason, reportedAt: new Date().toISOString() } : x,
+      ),
+    );
   };
 
   if (error)
@@ -222,23 +227,6 @@ export default function BookingDetail() {
           </div>
         </div>
         <p className="dh-desc">{describe(b, now)}</p>
-        {b.status === 10 && b.paymentDueAt && (
-          <div className="notice notice--warn">
-            <Clock size={18} />
-            <span>
-              Còn <b className="mono-num">{countdown(b.paymentDueAt, now)}</b> để thanh toán. Quá hạn đơn sẽ tự hủy.
-            </span>
-          </div>
-        )}
-        {b.status === 4 && b.autoConfirmAt && (
-          <div className="notice notice--warn">
-            <Clock size={18} />
-            <span>
-              Tự xác nhận hoàn thành sau <b className="mono-num">{countdown(b.autoConfirmAt, now)}</b>. Xem ảnh
-              trước/sau rồi xác nhận hoặc gửi khiếu nại.
-            </span>
-          </div>
-        )}
         {step !== undefined && (
           <ol className="progress" aria-label="Tiến độ đơn">
             {STEPS.map((s, i) => (
@@ -253,6 +241,7 @@ export default function BookingDetail() {
           <OrderActions
             booking={b}
             inDetail
+            openPayOnLoad={openPay}
             onChanged={(m) => {
               setToast(m);
               load(true);
@@ -260,6 +249,8 @@ export default function BookingDetail() {
           />
         </div>
       </section>
+
+      <PaymentStatusPanel booking={b} now={now} />
 
       <div className="detail-grid">
         <div>
@@ -349,18 +340,9 @@ export default function BookingDetail() {
                   <Phone size={17} /> Gọi {formatPhone(b.taskerPhone)}
                 </a>
               )}
-              {tasker && tasker.reviews.length > 0 && (
-                <ul className="reviews">
-                  {tasker.reviews.slice(0, 3).map((r) => (
-                    <li key={r.id}>
-                      <div>
-                        <b>{r.reviewerName}</b> <Stars n={r.rating} size={12} />
-                      </div>
-                      {r.comment && <p>{r.comment}</p>}
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <button type="button" className="btn btn-outline btn-block tasker-profile-btn" onClick={() => setProfileOf(b.taskerId)}>
+                <UserRound size={17} /> Xem hồ sơ & đánh giá
+              </button>
             </section>
           ) : (
             [0, 1, 8, 10].includes(b.status) && (
@@ -396,9 +378,17 @@ export default function BookingDetail() {
                     <p>{r.comment || "Không có nhận xét"}</p>
                     {r.reviewerId === b.taskerId &&
                       (r.isFlagged ? (
-                        <span className="hint">Đã báo cáo, chờ quản trị viên xử lý</span>
+                        <div className="review-report">
+                          <b>Đã báo cáo, chờ quản trị viên xử lý.</b>
+                          {r.reportReason && <span>Lý do của bạn: {r.reportReason}</span>}
+                        </div>
+                      ) : r.moderatedAt ? (
+                        <div className="review-report review-report--kept">
+                          <b>Quản trị viên đã xem xét và giữ lại đánh giá này.</b>
+                          {r.moderationNote && <span>Lý do: {r.moderationNote}</span>}
+                        </div>
                       ) : (
-                        <button type="button" className="link small" onClick={() => report(r)}>
+                        <button type="button" className="link small" onClick={() => setReporting(r)}>
                           <Flag size={13} /> Báo cáo đánh giá không phù hợp
                         </button>
                       ))}
@@ -460,6 +450,10 @@ export default function BookingDetail() {
           )}
         </div>
       </div>
+      {profileOf != null && <ProfileDialog userId={profileOf} onClose={() => setProfileOf(null)} />}
+      {reporting && (
+        <ReportReviewDialog review={reporting} onClose={() => setReporting(null)} onDone={(reason) => reported(reporting, reason)} />
+      )}
       <Toast message={toast} onClose={closeToast} />
     </AppShell>
   );

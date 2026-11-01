@@ -14,6 +14,7 @@ import {
   type AuthResponse,
   type LoginRequest,
   type RegisterRequest,
+  type RegisterResponse,
 } from "../types";
 
 const ADMIN_URL = import.meta.env.VITE_ADMIN_URL ?? "https://admin.homeservice.id.vn";
@@ -23,7 +24,10 @@ interface AuthState {
   user: User | null;
   /** 'ok': đã vào Web Customer; 'redirected': tài khoản Admin, đang chuyển sang Web Admin */
   login: (b: LoginRequest, remember?: boolean) => Promise<"ok" | "redirected">;
-  register: (b: RegisterRequest) => Promise<void>;
+  /** Đăng ký chỉ tạo tài khoản chưa kích hoạt + gửi mã OTP; chưa đăng nhập */
+  register: (b: RegisterRequest) => Promise<RegisterResponse>;
+  /** Nhập đúng mã OTP → kích hoạt và đăng nhập luôn (giống login) */
+  verifyEmail: (email: string, code: string, remember?: boolean) => Promise<"ok" | "redirected">;
   logout: () => Promise<void>;
   /** Cập nhật tên hiển thị sau khi sửa hồ sơ */
   updateName: (fullName: string) => void;
@@ -66,36 +70,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const login = useCallback(
-    async (b: LoginRequest, remember = true): Promise<"ok" | "redirected"> => {
-      const res = await authService.login(b);
-      if (res.role === UserRole.Admin) {
-        // Admin đăng nhập ở Web Customer => chuyển sang Web Admin, KHÔNG lưu phiên ở trang này
-        const user = {
-          userId: res.userId,
-          fullName: res.fullName,
-          email: res.email,
-          role: res.role,
-        };
-        window.location.href = buildHandoffUrl(ADMIN_URL, {
-          token: res.accessToken,
-          user,
-          remember,
-        });
-        return "redirected";
-      }
-      if (res.role !== UserRole.Customer)
-        throw new Error(
-          "Tài khoản Tasker dùng ứng dụng HomeService trên điện thoại. Tải ứng dụng ở trang chủ.",
-        );
-      save(res, remember);
-      return "ok";
-    },
-    [],
-  );
-  const register = useCallback(async (b: RegisterRequest) => {
-    save(await authService.register(b));
+  // Sau khi có token (đăng nhập hoặc xác thực OTP): Admin chuyển sang Web Admin, Tasker dùng app
+  const finish = useCallback((res: AuthResponse, remember: boolean): "ok" | "redirected" => {
+    if (res.role === UserRole.Admin) {
+      // Admin đăng nhập ở Web Customer => chuyển sang Web Admin, KHÔNG lưu phiên ở trang này
+      const user = {
+        userId: res.userId,
+        fullName: res.fullName,
+        email: res.email,
+        role: res.role,
+      };
+      window.location.href = buildHandoffUrl(ADMIN_URL, {
+        token: res.accessToken,
+        user,
+        remember,
+      });
+      return "redirected";
+    }
+    if (res.role !== UserRole.Customer)
+      throw new Error(
+        "Tài khoản Tasker dùng ứng dụng HomeService trên điện thoại. Tải ứng dụng ở trang chủ.",
+      );
+    save(res, remember);
+    return "ok";
   }, []);
+
+  const login = useCallback(
+    async (b: LoginRequest, remember = true) => finish(await authService.login(b), remember),
+    [finish],
+  );
+  const register = useCallback((b: RegisterRequest) => authService.register(b), []);
+  const verifyEmail = useCallback(
+    async (email: string, code: string, remember = true) =>
+      finish(await authService.verifyEmail(email, code), remember),
+    [finish],
+  );
   const logout = useCallback(async () => {
     await authService.logout();
     clear();
@@ -114,8 +123,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ user, login, register, logout, updateName }),
-    [user, login, register, logout, updateName],
+    () => ({ user, login, register, verifyEmail, logout, updateName }),
+    [user, login, register, verifyEmail, logout, updateName],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

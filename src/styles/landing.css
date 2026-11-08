@@ -780,8 +780,10 @@
 }
 .td-home {
   position: absolute;
-  right: 4%;
-  top: 14%;
+  /* đặt đúng điểm cuối đường (300, 40) */
+  left: 93.75%;
+  top: 25%;
+  transform: translate(-50%, -50%);
   width: 40px;
   height: 40px;
   border-radius: 14px;
@@ -793,33 +795,45 @@
 }
 .td-tasker {
   position: absolute;
-  left: 4%;
-  bottom: 14%;
+  left: 6.25%;
+  top: 81.25%;
+  transform: translate(-50%, -50%);
   width: 18px;
   height: 18px;
   border-radius: 50%;
   background: var(--accent);
   border: 3px solid #fff;
-  animation: travel 6s ease-in-out infinite;
+  animation: travel 6s linear infinite;
 }
+/* Chấm Tasker chạy đúng theo đường td-route: các mốc lấy mẫu đều theo độ dài đường cong (tọa độ viewBox 320×160 → %),
+   nên vẫn bám đường khi khung bản đồ co giãn (svg dùng preserveAspectRatio="none"). */
 @keyframes travel {
-  0% {
-    left: 4%;
-    bottom: 14%;
-  }
-  35% {
-    left: 38%;
-    bottom: 58%;
-  }
-  65% {
-    left: 66%;
-    bottom: 22%;
-  }
+  0% { left: 6.25%; top: 81.25%; }
+  3.75% { left: 10.71%; top: 80.11%; }
+  7.5% { left: 14.84%; top: 76.75%; }
+  11.25% { left: 18.50%; top: 71.73%; }
+  15% { left: 21.76%; top: 65.76%; }
+  18.75% { left: 24.85%; top: 59.23%; }
+  22.5% { left: 27.92%; top: 52.64%; }
+  26.25% { left: 31.11%; top: 46.50%; }
+  30% { left: 34.65%; top: 41.18%; }
+  33.75% { left: 38.73%; top: 37.33%; }
+  37.5% { left: 43.14%; top: 35.73%; }
+  41.25% { left: 47.62%; top: 36.38%; }
+  45% { left: 51.78%; top: 38.59%; }
+  48.75% { left: 56.06%; top: 41.75%; }
+  52.5% { left: 60.15%; top: 45.43%; }
+  56.25% { left: 64.06%; top: 49.35%; }
+  60% { left: 68.02%; top: 53.43%; }
+  63.75% { left: 72.11%; top: 57.22%; }
+  67.5% { left: 76.38%; top: 59.77%; }
+  71.25% { left: 80.74%; top: 59.45%; }
+  75% { left: 84.63%; top: 55.23%; }
+  78.75% { left: 87.66%; top: 48.58%; }
+  82.5% { left: 90.08%; top: 40.88%; }
+  86.25% { left: 92.08%; top: 32.84%; }
   90%,
-  100% {
-    left: 88%;
-    bottom: 70%;
-  }
+  100% { left: 93.75%; top: 25%; }
 }
 
 /* Ước tính chi phí */

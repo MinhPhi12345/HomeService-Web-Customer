@@ -19,7 +19,8 @@
   border-radius: 11px;
   display: grid;
   place-items: center;
-  background: var(--primary);
+  /* Nền chuyển màu giống icon ứng dụng */
+  background: linear-gradient(135deg, #22c9b8, #0b8f83);
   color: #fff;
 }
 .logo--light {

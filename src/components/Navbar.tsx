@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import BrandMark from "./BrandMark";
 import { useNotifications } from "../context/NotificationContext";
 import { initials } from "../utils/format";
 
@@ -30,7 +31,7 @@ export function Logo({ light = false }: { light?: boolean }) {
       aria-label="HomeService – Trang chủ"
     >
       <span className="logo-mark">
-        <House size={19} strokeWidth={2.4} />
+        <BrandMark size={30} />
       </span>
       <span>
         Home<b>Service</b>

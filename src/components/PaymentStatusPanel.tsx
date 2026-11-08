@@ -1,7 +1,7 @@
 import { Banknote, CheckCircle2, Clock, Lock, RotateCcw, ShieldAlert, Wallet } from "lucide-react";
 import type { BookingResponse } from "../types";
 import { formatDateTime, formatTime, formatVND } from "../utils/format";
-import { countdown } from "../utils/booking";
+import { countdown, payable } from "../utils/booking";
 
 type Tone = "warn" | "teal" | "success" | "danger" | "info";
 
@@ -9,7 +9,7 @@ type Tone = "warn" | "teal" | "success" | "danger" | "info";
 export default function PaymentStatusPanel({ booking: b, now }: { booking: BookingResponse; now: number }) {
   const cash = b.paymentMethod === 0;
   const methodName = cash ? "Tiền mặt" : b.paymentMethod === 2 ? "Thẻ ngân hàng" : "Ví điện tử";
-  const total = formatVND(b.totalPrice);
+  const total = formatVND(payable(b)); // số tiền khách thực trả (đã trừ mã giảm giá)
   let tone: Tone = "info";
   let Icon = Wallet;
   let title = "";

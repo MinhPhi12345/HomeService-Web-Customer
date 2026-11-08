@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
-import { ArrowLeft, Camera, Flag, Phone, RefreshCw, Star, UserRound } from "lucide-react";
+import { ArrowLeft, Camera, Flag, Phone, RefreshCw, Star, Trophy, UserRound } from "lucide-react";
 import AppShell from "../components/AppShell";
 import OrderActions from "../components/OrderActions";
 import { ReportReviewDialog } from "../components/OrderDialogs";
@@ -26,6 +26,7 @@ import {
   STATUS_META,
   describe,
   orderCode,
+  payable,
 } from "../utils/booking";
 
 const STEPS = ["Đã đặt", "Tìm Tasker", "Tasker nhận", "Đang làm", "Hoàn thành", "Đã thanh toán"];
@@ -204,6 +205,13 @@ export default function BookingDetail() {
       "Thanh toán",
       `${METHOD_LABEL[b.paymentMethod] ?? "—"}${b.paymentStatus != null ? ` · ${PAYMENT_STATUS_LABEL[b.paymentStatus] ?? ""}` : ""}`,
     ],
+    ...((b.discountAmount ?? 0) > 0
+      ? ([
+          ["Giá dịch vụ", formatVND(b.totalPrice)],
+          [`Mã giảm giá${b.voucherCode ? ` ${b.voucherCode}` : ""}`, `−${formatVND(b.discountAmount!)}`],
+          ["Bạn trả", formatVND(payable(b))],
+        ] as [string, string][])
+      : []),
     ...((b.cancellationFee ?? 0) > 0 ? ([["Phí hủy", formatVND(b.cancellationFee!)]] as [string, string][]) : []),
     ["Ngày tạo", formatDateTime(b.createdAt)],
   ];
@@ -222,7 +230,8 @@ export default function BookingDetail() {
             <span className="muted">Đơn #{orderCode(b.id)}</span>
           </div>
           <div className="dh-price">
-            <strong>{formatVND(b.totalPrice)}</strong>
+            {(b.discountAmount ?? 0) > 0 && <s className="price-old">{formatVND(b.totalPrice)}</s>}
+            <strong>{formatVND(payable(b))}</strong>
             <span className={`badge badge--${meta.tone}`}>{meta.label}</span>
           </div>
         </div>
@@ -322,6 +331,12 @@ export default function BookingDetail() {
                 <span className="avatar avatar--lg">{initials(b.taskerName)}</span>
                 <div className="tasker-info">
                   <b>{b.taskerName}</b>
+                  {b.taskerBadges && b.taskerBadges.length > 0 && (
+                    <span className="award-badge" title={b.taskerBadges.join(" · ")}>
+                      <Trophy size={13} /> {b.taskerBadges[0]}
+                      {b.taskerBadges.length > 1 ? ` (+${b.taskerBadges.length - 1})` : ""}
+                    </span>
+                  )}
                   {tasker && (
                     <span className="rating">
                       {tasker.ratingAverage != null ? (

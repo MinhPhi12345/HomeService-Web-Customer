@@ -13,6 +13,8 @@ import type {
   PublicProfile,
   ReviewItem,
   UserReviews,
+  MyVoucher,
+  VoucherCheckResponse,
 } from "../types";
 
 export interface MyBookingsQuery {
@@ -44,6 +46,7 @@ export const bookingService = {
       .get<CancellationFeeResponse>(`/bookings/${id}/cancellation-fee`)
       .then((r) => r.data),
   cancel: (id: number) => api.post(`/bookings/${id}/cancel`),
+  searchNow: (id: number) => api.post(`/bookings/${id}/search-now`),
   retry: (id: number, scheduledTime?: string) =>
     api.post(`/bookings/${id}/retry`, scheduledTime ? { scheduledTime } : {}),
   confirm: (id: number) => api.post(`/bookings/${id}/confirm`),
@@ -90,4 +93,11 @@ export const uploadService = {
       })
       .then((r) => r.data.url);
   },
+};
+
+// FR-32, FR-33 – mã giảm giá & "Ưu đãi của tôi"
+export const voucherService = {
+  check: (body: { code: string; serviceCategoryId: number; quantity: number; paymentMethod: PaymentMethod }) =>
+    api.post<VoucherCheckResponse>("/vouchers/check", body).then((r) => r.data),
+  mine: () => api.get<MyVoucher[]>("/vouchers/my").then((r) => r.data),
 };

@@ -1,4 +1,8 @@
 import { BookingStatus, type BookingResponse } from "../types";
+import { formatTime } from "./format";
+
+/** Số tiền khách thực trả = giá gốc − mã giảm giá (FR-32) */
+export const payable = (b: Pick<BookingResponse, "totalPrice" | "payableAmount">) => b.payableAmount ?? b.totalPrice;
 
 /** Mã đơn hiển thị dạng DH000125 (SRS 7.4) */
 export const orderCode = (id: number) => `DH${String(id).padStart(6, "0")}`;
@@ -71,11 +75,24 @@ export function countdown(targetIso: string, now: number): string {
   return `${pad(Math.floor(s / 3600))}:${pad(Math.floor((s % 3600) / 60))}:${pad(s % 60)}`;
 }
 
+/** BR-M07 – số phút còn phải chờ để bấm "Tìm lại ngay" (0 = bấm được). */
+export function searchNowWait(b: BookingResponse, now = Date.now()): number {
+  if (!b.searchNowAvailableAt) return 0;
+  const ms = new Date(b.searchNowAvailableAt).getTime() - now;
+  return ms > 0 ? Math.ceil(ms / 60_000) : 0;
+}
+
 export function describe(b: BookingResponse, now: number): string {
   const tasker = b.taskerName ? `Tasker ${b.taskerName}` : "Tasker";
   switch (b.status) {
     case BookingStatus.Pending:
     case BookingStatus.Matched:
+      if (b.searchExhaustedAt) {
+        if (b.status === BookingStatus.Matched) return "Đang gửi lời mời cho Tasker gần bạn, vui lòng chờ trong giây lát.";
+        const next = b.nextSearchAt ? ` Lần tìm tiếp theo lúc ${formatTime(b.nextSearchAt)}.` : "";
+        const stop = b.searchStopsAt ? ` Hệ thống dừng tìm lúc ${formatTime(b.searchStopsAt)} nếu vẫn chưa có Tasker.` : "";
+        return `Chưa có Tasker nhận đơn, hệ thống vẫn đang tìm tiếp.${next}${stop}`;
+      }
       return "Hệ thống đang tìm Tasker phù hợp gần bạn.";
     case BookingStatus.Accepted:
       return b.isTaskerNoShow
@@ -94,7 +111,7 @@ export function describe(b: BookingResponse, now: number): string {
     case BookingStatus.Cancelled:
       return "Đơn đã được hủy.";
     case BookingStatus.NoTaskerFound:
-      return "Chưa có Tasker nhận đơn. Bạn có thể thử lại hoặc hủy đơn.";
+      return "Đã gần giờ hẹn mà chưa có Tasker nhận đơn. Bạn có thể thử lại (có thể đổi giờ) hoặc hủy đơn.";
     case BookingStatus.Expired:
       return "Đơn đã hết hạn, hãy tạo đơn mới.";
     case BookingStatus.AwaitingPayment:

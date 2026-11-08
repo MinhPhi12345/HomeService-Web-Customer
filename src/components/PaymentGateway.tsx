@@ -5,7 +5,7 @@ import { bookingService, paymentService } from "../services/bookingService";
 import { getErrorMessage } from "../services/api";
 import type { BookingResponse } from "../types";
 import { formatDateTime, formatVND } from "../utils/format";
-import { orderCode } from "../utils/booking";
+import { orderCode, payable } from "../utils/booking";
 
 type Method = 1 | 2;
 type Step = "form" | "processing" | "success";
@@ -257,7 +257,7 @@ export function ConfirmReleaseDialog({
     setError("");
     try {
       await bookingService.confirm(booking.id);
-      onDone(`Đã xác nhận hoàn thành. ${formatVND(booking.totalPrice)} đã được chuyển cho Tasker.`);
+      onDone(`Đã xác nhận hoàn thành. ${formatVND(booking.totalPrice)} đã được chuyển cho Tasker.`); // Tasker nhận theo giá gốc
     } catch (e) {
       setError(getErrorMessage(e));
     } finally {
@@ -277,7 +277,7 @@ export function ConfirmReleaseDialog({
             </button>
           )}
           <button className="btn btn-primary" onClick={confirm} disabled={busy || !agree}>
-            {busy ? "Đang xử lý…" : `Xác nhận & chuyển ${formatVND(booking.totalPrice)}`}
+            {busy ? "Đang xử lý…" : `Xác nhận & thanh toán cho Tasker`}
           </button>
         </>
       }
@@ -285,12 +285,18 @@ export function ConfirmReleaseDialog({
       <div className="gw-flow">
         <div>
           <span>Bạn đã thanh toán trước</span>
-          <b>{formatVND(booking.totalPrice)}</b>
+          <b>{formatVND(payable(booking))}</b>
         </div>
         <div>
           <span>HomeService đang tạm giữ</span>
-          <b>{formatVND(booking.totalPrice)}</b>
+          <b>{formatVND(payable(booking))}</b>
         </div>
+        {(booking.discountAmount ?? 0) > 0 && (
+          <div>
+            <span>HomeService bù phần giảm giá {booking.voucherCode ? `(mã ${booking.voucherCode})` : ""}</span>
+            <b>+{formatVND(booking.discountAmount!)}</b>
+          </div>
+        )}
         <div className="gw-flow-to">
           <span>Chuyển cho Tasker {booking.taskerName ?? ""} khi bạn xác nhận</span>
           <b>{formatVND(booking.totalPrice)}</b>

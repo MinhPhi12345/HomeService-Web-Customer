@@ -75,6 +75,8 @@ export interface CreateBookingRequest {
   customerPresent?: boolean;
   /** SĐT để Tasker liên hệ (^0\d{9}$). Bỏ trống: Backend dùng SĐT trong hồ sơ */
   contactPhone?: string | null;
+  /** FR-32 – mã giảm giá (chỉ đơn trả trước) */
+  voucherCode?: string | null;
 }
 
 export interface BookingResponse {
@@ -114,6 +116,17 @@ export interface BookingResponse {
   /** SĐT liên hệ khách nhập khi đặt đơn */
   contactPhone?: string | null;
   updatedAt?: string | null;
+  /** FR-32 – totalPrice là giá gốc; khách trả payableAmount = totalPrice − discountAmount */
+  discountAmount?: number;
+  payableAmount?: number;
+  voucherCode?: string | null;
+  /** FR-31 – huy hiệu Tasker xuất sắc tháng của Tasker phụ trách (chỉ có ở chi tiết đơn) */
+  taskerBadges?: string[] | null;
+  /** BR-M05/M07 – đơn đã quét hết mà chưa ai nhận, hệ thống vẫn đang tìm tiếp */
+  searchExhaustedAt?: string | null;
+  nextSearchAt?: string | null;
+  searchStopsAt?: string | null;
+  searchNowAvailableAt?: string | null;
 }
 
 export interface CancellationFeeResponse {
@@ -248,4 +261,44 @@ export interface PublicProfile {
   workingArea: string | null;
   skills: string | null;
   reviews: ReviewItem[];
+  /** FR-31 – huy hiệu Tasker xuất sắc tháng (chỉ Tasker) */
+  badges?: AwardBadge[] | null;
+}
+
+export interface AwardBadge {
+  year: number;
+  month: number;
+  rank: number;
+  label: string;
+}
+
+// FR-32, FR-33 – mã giảm giá & quà tặng
+export const VoucherDiscountType = { Percent: 0, FixedAmount: 1 } as const;
+export type VoucherDiscountType = (typeof VoucherDiscountType)[keyof typeof VoucherDiscountType];
+
+export interface VoucherCheckResponse {
+  voucherId: number;
+  code: string;
+  name: string;
+  description?: string | null;
+  originalPrice: number;
+  discountAmount: number;
+  payableAmount: number;
+  message: string;
+}
+
+export interface MyVoucher {
+  id: number;
+  code: string;
+  name: string;
+  description?: string | null;
+  discountType: VoucherDiscountType;
+  discountValue: number;
+  maxDiscount?: number | null;
+  minOrderValue: number;
+  serviceNames: string[];
+  endsAt: string;
+  source: number; // 0 chương trình, 1 chào mừng, 2 thân thiết, 3 xin lỗi
+  isGift: boolean;
+  remainingUses: number;
 }

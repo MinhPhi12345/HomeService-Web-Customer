@@ -12,7 +12,7 @@ import { bookingService } from "../services/bookingService";
 import { getErrorMessage } from "../services/api";
 import type { BookingResponse } from "../types";
 import { formatVND } from "../utils/format";
-import { FILTERS, STATUS_META, describe, friendlyDate, orderCode } from "../utils/booking";
+import { FILTERS, STATUS_META, describe, friendlyDate, orderCode, payable } from "../utils/booking";
 
 const ACTIVE = [0, 1, 2, 3, 10]; // đang diễn ra => tự tải lại
 
@@ -158,7 +158,10 @@ export default function Orders() {
                     </div>
                     <p className="order-desc">{describe(o, now)}</p>
                   </div>
-                  <strong className="order-price">{formatVND(o.totalPrice)}</strong>
+                  <strong className="order-price">
+                    {(o.discountAmount ?? 0) > 0 && <s className="price-old">{formatVND(o.totalPrice)}</s>}
+                    {formatVND(payable(o))}
+                  </strong>
                 </Link>
                 <div className="order-actions">
                   <OrderActions booking={o} onChanged={onChanged} />

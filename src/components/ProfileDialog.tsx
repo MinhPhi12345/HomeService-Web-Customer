@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BadgeCheck, MapPin, Star } from "lucide-react";
+import { BadgeCheck, MapPin, Star, Trophy } from "lucide-react";
 import Modal from "./Modal";
 import { profileService } from "../services/bookingService";
 import { getErrorMessage } from "../services/api";
@@ -80,6 +80,16 @@ export default function ProfileDialog({ userId, onClose }: { userId: number; onC
               <span>đơn hoàn tất</span>
             </div>
           </div>
+
+          {isTasker && profile.badges && profile.badges.length > 0 && (
+            <div className="pub-profile-badges">
+              {profile.badges.map((x) => (
+                <span key={`${x.year}-${x.month}`} className={`award-badge award-badge--r${Math.min(x.rank, 4)}`}>
+                  <Trophy size={13} /> {x.label} · hạng {x.rank}
+                </span>
+              ))}
+            </div>
+          )}
 
           {isTasker && (profile.workingArea || profile.skills) && (
             <div className="pub-profile-meta">

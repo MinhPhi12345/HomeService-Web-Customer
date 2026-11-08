@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { Briefcase, Check, House, Lock } from "lucide-react";
+import { Briefcase, Check, Lock } from "lucide-react";
+import BrandMark from "./BrandMark";
 import { iconForService } from "./ServiceIcon";
 import "../styles/auth.css";
 
@@ -25,7 +26,7 @@ export default function AuthLayout({ title, desc, extra = "chips", footNote, chi
         <span className="auth-blob auth-blob--bottom" aria-hidden="true" />
         <Link to="/" className="auth-logo" aria-label="HomeService – Trang chủ">
           <span className="auth-logo-mark">
-            <House size={22} strokeWidth={2.4} />
+            <BrandMark size={36} variant="onLight" />
           </span>
           HomeService
         </Link>
@@ -65,7 +66,7 @@ export default function AuthLayout({ title, desc, extra = "chips", footNote, chi
       <main className="auth-side">
         <Link to="/" className="auth-logo auth-logo--mobile" aria-label="HomeService – Trang chủ">
           <span className="auth-logo-mark">
-            <House size={20} strokeWidth={2.4} />
+            <BrandMark size={32} />
           </span>
           HomeService
         </Link>

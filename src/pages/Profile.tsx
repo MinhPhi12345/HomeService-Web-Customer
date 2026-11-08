@@ -4,6 +4,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { AlertTriangle, Camera, Crosshair, Loader2, Mail, Receipt, RefreshCw, ShieldCheck } from "lucide-react";
 import AppShell from "../components/AppShell";
 import ChangePasswordForm from "../components/ChangePasswordForm";
+import MyVouchers from "../components/MyVouchers";
 import { Toast } from "../components/Modal";
 import { useAuth } from "../context/AuthContext";
 import { profileService, paymentHistoryService } from "../services/userServices";
@@ -102,7 +103,7 @@ export default function Profile() {
   const { updateName } = useAuth();
   const [params, setParams] = useSearchParams();
   const tabParam = params.get("tab");
-  const tab = tabParam === "payments" || tabParam === "security" ? tabParam : "info";
+  const tab = tabParam === "payments" || tabParam === "security" || tabParam === "vouchers" ? tabParam : "info";
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
   const [loadError, setLoadError] = useState("");
   const [form, setForm] = useState({ fullName: "", phoneNumber: "", address: "", avatarUrl: "" });
@@ -298,6 +299,15 @@ export default function Profile() {
               type="button"
               role="tab"
               className="tab"
+              aria-selected={tab === "vouchers"}
+              onClick={() => setParams({ tab: "vouchers" }, { replace: true })}
+            >
+              Ưu đãi của tôi
+            </button>
+            <button
+              type="button"
+              role="tab"
+              className="tab"
               aria-selected={tab === "security"}
               onClick={() => setParams({ tab: "security" }, { replace: true })}
             >
@@ -307,6 +317,8 @@ export default function Profile() {
           <div className="profile-body">
             {tab === "payments" ? (
               <PaymentHistory />
+            ) : tab === "vouchers" ? (
+              <MyVouchers />
             ) : tab === "security" ? (
               <ChangePasswordForm onDone={setToast} />
             ) : !profile ? (

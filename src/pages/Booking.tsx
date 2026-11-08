@@ -16,19 +16,23 @@ import {
   Phone,
   Plus,
   Search,
+  Ticket,
   UserRound,
   Wallet,
   Banknote,
+  X,
 } from "lucide-react";
 import AppShell from "../components/AppShell";
 import MapView, { type LatLng } from "../components/MapView";
 import ServiceBadge from "../components/ServiceBadge";
 import { useServices } from "../hooks/useServices";
-import { bookingService } from "../services/bookingService";
+import { bookingService, voucherService } from "../services/bookingService";
+import { VoucherCard } from "../components/MyVouchers";
+import { estimateDiscount } from "../utils/voucher";
 import { profileService } from "../services/userServices";
 import { currentPosition, geoService, type GeoPlace } from "../services/geoService";
 import { getErrorMessage } from "../services/api";
-import { BookingStatus, PaymentMethod, type ProfileResponse } from "../types";
+import { BookingStatus, PaymentMethod, type MyVoucher, type ProfileResponse, type VoucherCheckResponse } from "../types";
 import { formatPhone, formatVND } from "../utils/format";
 import { validatePhone } from "../utils/validators";
 
@@ -109,6 +113,14 @@ export default function Booking() {
   const [serverError, setServerError] = useState("");
   const [payFailedId, setPayFailedId] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // ---- FR-32: mã giảm giá (chỉ đơn trả trước)
+  const [voucherInput, setVoucherInput] = useState(params.get("voucher") ?? "");
+  const [voucher, setVoucher] = useState<VoucherCheckResponse | null>(null);
+  const [voucherError, setVoucherError] = useState("");
+  const [checkingVoucher, setCheckingVoucher] = useState(false);
+  const [myVouchers, setMyVouchers] = useState<MyVoucher[]>([]);
+  const [showVouchers, setShowVouchers] = useState(false);
 
   /** Ghim vị trí mới => tự điền địa chỉ theo bản đồ */
   const pick = useCallback(async (p: LatLng, fillAddress = true) => {
@@ -205,6 +217,49 @@ export default function Booking() {
             ? `Chỉ áp dụng cho đơn đến ${formatVND(CASH_MAX)}`
             : "";
   const cashAllowed = !cashReason;
+
+  useEffect(() => {
+    voucherService.mine().then(setMyVouchers).catch(() => undefined);
+  }, []);
+
+  const applyVoucher = async (code: string, silent = false) => {
+      const c = code.trim().toUpperCase();
+      if (!c) {
+        setVoucherError("Vui lòng nhập mã giảm giá.");
+        return;
+      }
+      if (!service) {
+        setVoucherError("Vui lòng chọn dịch vụ trước khi nhập mã.");
+        return;
+      }
+      setCheckingVoucher(true);
+      setVoucherError("");
+      try {
+        const res = await voucherService.check({ code: c, serviceCategoryId: service.id, quantity, paymentMethod: method });
+        setVoucher(res);
+        setVoucherInput(res.code);
+        setShowVouchers(false);
+      } catch (e) {
+        setVoucher(null);
+        setVoucherError(silent ? `Mã ${c} không còn áp dụng: ${getErrorMessage(e)}` : getErrorMessage(e));
+      } finally {
+        setCheckingVoucher(false);
+      }
+  };
+
+  // Đổi dịch vụ / số lượng / phương thức → kiểm tra lại mã đang áp dụng
+  const appliedCode = voucher?.code;
+  useEffect(() => {
+    if (!appliedCode || method === PaymentMethod.Cash) return;
+    void applyVoucher(appliedCode, true);
+  }, [serviceId, quantity, method]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const discount = voucher?.discountAmount ?? 0;
+  const payTotal = Math.max(0, total - discount);
+  const suggested = useMemo(
+    () => [...myVouchers].sort((a, b) => estimateDiscount(b, total) - estimateDiscount(a, total)),
+    [myVouchers, total],
+  );
   useEffect(() => {
     if (!cashAllowed && method === PaymentMethod.Cash) setMethod(PaymentMethod.EWallet);
   }, [cashAllowed, method]);
@@ -266,6 +321,7 @@ export default function Booking() {
         paymentMethod: method,
         customerPresent: method === PaymentMethod.Cash ? present : false,
         contactPhone: phone,
+        voucherCode: method !== PaymentMethod.Cash && voucher ? voucher.code : null,
       });
       createdId = booking.id;
 
@@ -628,7 +684,13 @@ export default function Booking() {
                   aria-checked={method === m}
                   disabled={disabled}
                   className="pay-opt"
-                  onClick={() => setMethod(m)}
+                  onClick={() => {
+                    setMethod(m);
+                    if (m === PaymentMethod.Cash && voucher) {
+                      setVoucher(null);
+                      setVoucherError("Mã giảm giá chỉ áp dụng cho đơn thanh toán trước (ví điện tử, thẻ).");
+                    }
+                  }}
                 >
                   <Icon size={20} />
                   <b>{title}</b>
@@ -648,6 +710,91 @@ export default function Booking() {
               <p className="hint pay-note">
                 <Info size={15} /> Thanh toán giả lập để demo, không trừ tiền thật. Đơn cần thanh toán trong 15 phút.
               </p>
+            )}
+
+            <div className="label bk-voucher-label">Mã giảm giá</div>
+            {method === PaymentMethod.Cash ? (
+              <p className="hint">Mã giảm giá chỉ áp dụng khi thanh toán trước bằng ví điện tử hoặc thẻ.</p>
+            ) : voucher ? (
+              <div className="voucher-applied">
+                <Ticket size={18} />
+                <div>
+                  <span>
+                    <b>{voucher.code}</b> · {voucher.name}
+                  </span>
+                  <span className="hint">Giảm {formatVND(voucher.discountAmount)} cho đơn này</span>
+                </div>
+                <button
+                  type="button"
+                  className="icon-btn"
+                  aria-label="Bỏ mã giảm giá"
+                  onClick={() => {
+                    setVoucher(null);
+                    setVoucherInput("");
+                  }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="voucher-input">
+                  <div className="input-icon">
+                    <Ticket size={18} />
+                    <input
+                      className="input"
+                      aria-label="Mã giảm giá"
+                      placeholder="Nhập mã, ví dụ CHAOTHANG11"
+                      maxLength={30}
+                      value={voucherInput}
+                      onChange={(e) => {
+                        setVoucherInput(e.target.value.toUpperCase());
+                        setVoucherError("");
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          void applyVoucher(voucherInput);
+                        }
+                      }}
+                      aria-invalid={!!voucherError}
+                    />
+                  </div>
+                  <button type="button" className="btn btn-outline" onClick={() => applyVoucher(voucherInput)} disabled={checkingVoucher}>
+                    {checkingVoucher ? "Đang kiểm tra…" : "Áp dụng"}
+                  </button>
+                </div>
+                {voucherError && <span className="field-error">{voucherError}</span>}
+                {myVouchers.length > 0 && (
+                  <button type="button" className="chip chip--sm voucher-toggle" onClick={() => setShowVouchers((x) => !x)}>
+                    <Ticket size={14} /> {showVouchers ? "Ẩn ưu đãi của tôi" : `Chọn ưu đãi của tôi (${myVouchers.length})`}
+                  </button>
+                )}
+                {showVouchers && (
+                  <div className="voucher-list voucher-list--pick">
+                    {suggested.map((v) => {
+                      const est = estimateDiscount(v, total);
+                      return (
+                        <VoucherCard
+                          key={v.id}
+                          v={v}
+                          action={
+                            <button
+                              type="button"
+                              className="btn btn-primary btn-sm"
+                              disabled={est <= 0 || checkingVoucher}
+                              title={est <= 0 ? "Đơn chưa đủ điều kiện dùng mã này" : undefined}
+                              onClick={() => applyVoucher(v.code)}
+                            >
+                              {est > 0 ? `Dùng · −${formatVND(est)}` : "Chưa đủ điều kiện"}
+                            </button>
+                          }
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+              </>
             )}
           </section>
         </div>
@@ -684,9 +831,21 @@ export default function Booking() {
               <span>Địa chỉ</span>
               <b className="sum-addr">{address.trim() || "Chưa chọn"}</b>
             </div>
+            {discount > 0 && (
+              <>
+                <div className="kv">
+                  <span>Tạm tính</span>
+                  <b>{formatVND(total)}</b>
+                </div>
+                <div className="kv kv--discount">
+                  <span>Mã {voucher?.code}</span>
+                  <b>−{formatVND(discount)}</b>
+                </div>
+              </>
+            )}
             <div className="sum-total">
               <span>Tổng thanh toán</span>
-              <strong>{formatVND(total)}</strong>
+              <strong>{formatVND(method === PaymentMethod.Cash ? total : payTotal)}</strong>
             </div>
             {serverError && (
               <div className="notice notice--danger" role="alert">
@@ -709,7 +868,7 @@ export default function Booking() {
               ) : method === PaymentMethod.Cash ? (
                 "Đặt đơn"
               ) : (
-                `Đặt đơn & thanh toán ${formatVND(total)}`
+                `Đặt đơn & thanh toán ${formatVND(payTotal)}`
               )}
             </button>
             <p className="sum-safe">

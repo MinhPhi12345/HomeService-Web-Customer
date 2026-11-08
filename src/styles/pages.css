@@ -1209,3 +1209,66 @@ ul.noti-list {
 .pay-status-timer b { font-size: 20px; }
 @media (max-width: 560px) { .pay-status { flex-wrap: wrap; } .pay-status-timer { flex-direction: row; gap: 8px; align-items: center; } }
 .pay-status { margin: 16px 0; }
+
+/* ===== FR-32, FR-33 – mã giảm giá & ưu đãi ===== */
+.voucher-input { display: flex; gap: 8px; align-items: stretch; }
+.voucher-input .input-icon { flex: 1; }
+.voucher-input input { text-transform: uppercase; letter-spacing: 0.4px; }
+.voucher-input input::placeholder { text-transform: none; letter-spacing: 0; }
+.bk-voucher-label { display: block; margin: 18px 0 8px; }
+.voucher-toggle { margin-top: 10px; }
+.voucher-input .btn { white-space: nowrap; }
+.voucher-applied {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--r-sm);
+  border: 1px dashed var(--primary); background: var(--primary-soft); color: var(--primary-deep);
+}
+.voucher-applied > div { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.voucher-applied .hint { color: var(--primary-deep); }
+.voucher-list { display: flex; flex-direction: column; gap: 10px; }
+.voucher-list--pick { margin-top: 10px; max-height: 360px; overflow: auto; padding-right: 2px; }
+.voucher {
+  display: flex; gap: 12px; align-items: center; padding: 12px 14px; border-radius: var(--r-md);
+  border: 1px solid var(--line); background: var(--surface); position: relative;
+}
+.voucher::before {
+  content: ""; position: absolute; left: 52px; top: 10px; bottom: 10px; border-left: 2px dashed var(--line);
+}
+.voucher--gift { border-color: #ffd5b5; background: linear-gradient(90deg, var(--accent-soft), #fff 55%); }
+.voucher-icon {
+  width: 34px; height: 34px; flex-shrink: 0; border-radius: 10px; display: inline-flex; align-items: center;
+  justify-content: center; background: var(--primary-soft); color: var(--primary-dark); margin-right: 8px;
+}
+.voucher--gift .voucher-icon { background: #ffe2cc; color: #b4561b; }
+.voucher-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.voucher-body b { font-size: 15px; color: var(--ink); }
+.voucher-name { font-size: 13px; color: var(--ink-soft); }
+.voucher-tag {
+  align-self: flex-start; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
+  color: var(--primary-dark);
+}
+.voucher--gift .voucher-tag { color: #b4561b; }
+.voucher-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 700; color: var(--ink);
+  background: var(--bg); padding: 1px 6px; border-radius: 6px;
+}
+.voucher-action { flex-shrink: 0; }
+.voucher-action .btn { display: inline-flex; align-items: center; gap: 4px; }
+.kv--discount b { color: var(--success); }
+.price-old { color: var(--muted); font-weight: 500; font-size: 0.82em; margin-right: 6px; }
+.dh-price .price-old { display: block; margin: 0; }
+
+/* ===== FR-31 – huy hiệu Tasker xuất sắc tháng ===== */
+.award-badge {
+  display: inline-flex; align-items: center; gap: 4px; align-self: flex-start; padding: 2px 9px; border-radius: 999px;
+  background: #fff1c2; color: #8a6000; font-size: 12px; font-weight: 700;
+}
+.award-badge--r2 { background: #eef1f4; color: #55626b; }
+.award-badge--r3 { background: #fbe3d2; color: #9a4f1c; }
+.award-badge--r4 { background: var(--primary-soft); color: var(--primary-deep); }
+.pub-profile-badges { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 0; }
+@media (max-width: 560px) {
+  .voucher { flex-wrap: wrap; }
+  .voucher::before { display: none; }
+  .voucher-action { width: 100%; }
+  .voucher-action .btn { width: 100%; justify-content: center; }
+}

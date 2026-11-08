@@ -10,6 +10,7 @@ import {
 import { ConfirmReleaseDialog, PaymentGateway } from "./PaymentGateway";
 import { bookingService } from "../services/bookingService";
 import { getErrorMessage } from "../services/api";
+import { payable, searchNowWait } from "../utils/booking";
 import { BookingStatus, PaymentMethod, type BookingResponse } from "../types";
 
 type Dlg =
@@ -140,8 +141,22 @@ export default function OrderActions({
           cancel(),
         ];
       case S.Pending:
-      case S.Matched:
-        return [cancel()];
+      case S.Matched: {
+        if (!b.searchExhaustedAt) return [cancel()];
+        // BR-M07: đã quét hết mà chưa ai nhận → khách tự bấm tìm lại, không phải chờ lượt quét tự động
+        const wait = searchNowWait(b);
+        const sending = b.status === S.Matched;
+        return [
+          cb(
+            "searchNow",
+            sending ? "Đang tìm…" : wait > 0 ? `Tìm lại sau ${wait} phút` : "Tìm lại ngay",
+            "btn-primary",
+            () => run(() => bookingService.searchNow(b.id), "Đang tìm lại Tasker gần bạn."),
+            sending || wait > 0,
+          ),
+          cancel(),
+        ];
+      }
       case S.Accepted:
         return b.isTaskerNoShow
           ? [
@@ -237,7 +252,7 @@ export default function OrderActions({
       {dlg === "pay" && (
         <PaymentGateway
           booking={b}
-          amount={b.totalPrice}
+          amount={payable(b)}
           title="Thanh toán đơn hàng"
           successNote="HomeService đang tạm giữ số tiền này và bắt đầu tìm Tasker cho bạn. Tasker chỉ nhận tiền khi bạn xác nhận hoàn thành."
           onClose={() => setDlg(null)}

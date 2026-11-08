@@ -83,6 +83,9 @@ const FEATURES = [
   { Icon: Star, title: "Đánh giá hai chiều", text: "Khách và Tasker chấm điểm nhau sau mỗi đơn, đánh giá bất thường có thể báo cáo." },
 ];
 
+/** Đường đi minh họa (hệ tọa độ 300×260). Đổi đường này thì cập nhật cả @keyframes travel trong landing.css. */
+const TRACK_ROUTE = "M28 222 C 96 222, 50 116, 118 112 S 190 156, 216 112 S 240 50, 266 46";
+
 const FAQ = [
   {
     q: "Tôi có phải trả thêm tiền cho Tasker không?",
@@ -450,14 +453,21 @@ export default function Landing() {
             <div className="bento">
               <Reveal className="bento-main">
                 <div className="track-demo" aria-hidden="true">
-                  <svg viewBox="0 0 320 160" preserveAspectRatio="none">
-                    <path className="td-road" d="M20 130 C 80 130, 90 40, 160 60 S 260 140, 300 40" />
-                    <path className="td-route" d="M20 130 C 80 130, 90 40, 160 60 S 260 140, 300 40" />
-                  </svg>
-                  <span className="td-home">
-                    <MapPinned size={18} />
+                  {/* Hình minh họa giữ đúng tỉ lệ 300×260 và luôn nằm giữa khung, nên đường đi không bị kéo méo */}
+                  <div className="td-map">
+                    <svg viewBox="0 0 300 260">
+                      <path className="td-road" d={TRACK_ROUTE} />
+                      <path className="td-route" d={TRACK_ROUTE} />
+                      <circle className="td-start" cx="28" cy="222" r="7" />
+                    </svg>
+                    <span className="td-home">
+                      <MapPinned size={18} />
+                    </span>
+                    <span className="td-tasker" />
+                  </div>
+                  <span className="td-chip">
+                    <span className="live-dot" /> Tasker đang đến · 1,2 km
                   </span>
-                  <span className="td-tasker" />
                 </div>
                 <h3>Theo dõi Tasker trên bản đồ</h3>
                 <p>

@@ -745,24 +745,36 @@
 .track-demo {
   position: relative;
   flex: 1;
-  min-height: 200px;
+  min-height: 220px;
   margin-bottom: 22px;
   border-radius: 18px;
   overflow: hidden;
+  container-type: size;
   background: repeating-linear-gradient(0deg, transparent 0 28px, rgba(255, 255, 255, 0.05) 28px 29px),
     repeating-linear-gradient(90deg, transparent 0 28px, rgba(255, 255, 255, 0.05) 28px 29px),
     rgba(255, 255, 255, 0.03);
 }
-.track-demo svg {
+/* Khung hình minh họa: giữ tỉ lệ 300×260, co vừa vào bản đồ (chừa lề cho ghim nhà và nhãn trạng thái) và luôn nằm giữa */
+.td-map {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 72%;
+  width: min(calc(100cqw - 56px), calc((100cqh - 96px) * 300 / 260));
+  aspect-ratio: 300 / 260;
+  transform: translate(-50%, calc(-50% - 16px));
+}
+.td-map svg {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
+  overflow: visible;
 }
 .td-road {
   fill: none;
   stroke: rgba(255, 255, 255, 0.1);
-  stroke-width: 10;
+  stroke-width: 12;
   stroke-linecap: round;
 }
 .td-route {
@@ -773,6 +785,11 @@
   stroke-dasharray: 8 10;
   animation: dash 1.2s linear infinite;
 }
+.td-start {
+  fill: #0f2f2d;
+  stroke: #8ff0e4;
+  stroke-width: 3;
+}
 @keyframes dash {
   to {
     stroke-dashoffset: -36;
@@ -780,9 +797,9 @@
 }
 .td-home {
   position: absolute;
-  /* đặt đúng điểm cuối đường (300, 40) */
-  left: 93.75%;
-  top: 25%;
+  /* đặt đúng điểm cuối đường (266, 46) */
+  left: 88.67%;
+  top: 17.69%;
   transform: translate(-50%, -50%);
   width: 40px;
   height: 40px;
@@ -795,45 +812,65 @@
 }
 .td-tasker {
   position: absolute;
-  left: 6.25%;
-  top: 81.25%;
+  left: 9.33%;
+  top: 85.38%;
   transform: translate(-50%, -50%);
   width: 18px;
   height: 18px;
   border-radius: 50%;
   background: var(--accent);
   border: 3px solid #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   animation: travel 6s linear infinite;
 }
-/* Chấm Tasker chạy đúng theo đường td-route: các mốc lấy mẫu đều theo độ dài đường cong (tọa độ viewBox 320×160 → %),
-   nên vẫn bám đường khi khung bản đồ co giãn (svg dùng preserveAspectRatio="none"). */
+.td-chip {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: rgba(10, 36, 34, 0.85);
+  border: 1px solid rgba(143, 240, 228, 0.18);
+  color: #d9f5f1;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+/* Chấm Tasker chạy đúng theo đường td-route: các mốc lấy mẫu đều theo độ dài đường cong
+   (tọa độ 300×260 → % của .td-map). Đổi TRACK_ROUTE trong Landing.tsx thì phải tính lại các mốc này. */
 @keyframes travel {
-  0% { left: 6.25%; top: 81.25%; }
-  3.75% { left: 10.71%; top: 80.11%; }
-  7.5% { left: 14.84%; top: 76.75%; }
-  11.25% { left: 18.50%; top: 71.73%; }
-  15% { left: 21.76%; top: 65.76%; }
-  18.75% { left: 24.85%; top: 59.23%; }
-  22.5% { left: 27.92%; top: 52.64%; }
-  26.25% { left: 31.11%; top: 46.50%; }
-  30% { left: 34.65%; top: 41.18%; }
-  33.75% { left: 38.73%; top: 37.33%; }
-  37.5% { left: 43.14%; top: 35.73%; }
-  41.25% { left: 47.62%; top: 36.38%; }
-  45% { left: 51.78%; top: 38.59%; }
-  48.75% { left: 56.06%; top: 41.75%; }
-  52.5% { left: 60.15%; top: 45.43%; }
-  56.25% { left: 64.06%; top: 49.35%; }
-  60% { left: 68.02%; top: 53.43%; }
-  63.75% { left: 72.11%; top: 57.22%; }
-  67.5% { left: 76.38%; top: 59.77%; }
-  71.25% { left: 80.74%; top: 59.45%; }
-  75% { left: 84.63%; top: 55.23%; }
-  78.75% { left: 87.66%; top: 48.58%; }
-  82.5% { left: 90.08%; top: 40.88%; }
-  86.25% { left: 92.08%; top: 32.84%; }
-  90%,
-  100% { left: 93.75%; top: 25%; }
+  0% { left: 9.33%; top: 85.38%; }
+  3.67% { left: 14.18%; top: 84.61%; }
+  7.33% { left: 18.41%; top: 81.80%; }
+  11% { left: 21.25%; top: 77.23%; }
+  14.67% { left: 22.93%; top: 71.91%; }
+  18.33% { left: 24.05%; top: 66.39%; }
+  22% { left: 25.05%; top: 60.86%; }
+  25.67% { left: 26.32%; top: 55.39%; }
+  29.33% { left: 28.33%; top: 50.22%; }
+  33% { left: 31.58%; top: 46.03%; }
+  36.67% { left: 36.01%; top: 43.65%; }
+  40.33% { left: 40.86%; top: 43.00%; }
+  44% { left: 45.77%; top: 43.19%; }
+  47.67% { left: 50.60%; top: 44.11%; }
+  51.33% { left: 55.28%; top: 45.84%; }
+  55% { left: 59.74%; top: 48.19%; }
+  58.67% { left: 64.30%; top: 50.21%; }
+  62.33% { left: 68.71%; top: 48.26%; }
+  66% { left: 71.65%; top: 43.74%; }
+  69.67% { left: 74.09%; top: 38.82%; }
+  73.33% { left: 76.36%; top: 33.79%; }
+  77% { left: 78.50%; top: 28.71%; }
+  80.67% { left: 80.80%; top: 23.71%; }
+  84.33% { left: 84.08%; top: 19.56%; }
+  88% { left: 88.67%; top: 17.69%; opacity: 1; }
+  /* tới nhà thì ẩn chấm đi, vòng sau chạy lại từ đầu */
+  94%,
+  100% { left: 88.67%; top: 17.69%; opacity: 0; }
 }
 
 /* Ước tính chi phí */
@@ -1302,6 +1339,27 @@
   .bento-main {
     grid-column: 1 / -1;
     grid-row: auto;
+    /* Thẻ trải hết chiều ngang: bản đồ bên trái, chữ bên phải cho cân */
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: 1fr auto auto 1fr;
+    column-gap: 32px;
+  }
+  .bento-main .track-demo {
+    grid-column: 1;
+    grid-row: 1 / -1;
+    flex: none;
+    height: 320px;
+    margin-bottom: 0;
+  }
+  .bento-main h3 {
+    grid-column: 2;
+    grid-row: 2;
+    font-size: 20px;
+  }
+  .bento-main p {
+    grid-column: 2;
+    grid-row: 3;
   }
   .bento-item:last-child:nth-child(6) {
     grid-column: 1 / -1;
@@ -1321,6 +1379,14 @@
 
 /* ---------- Điện thoại ---------- */
 @media (max-width: 760px) {
+  .bento-main {
+    display: flex;
+  }
+  .bento-main .track-demo {
+    height: auto;
+    aspect-ratio: 1 / 1;
+    margin-bottom: 20px;
+  }
   .section {
     padding: 64px 0;
   }

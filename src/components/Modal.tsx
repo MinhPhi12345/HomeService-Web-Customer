@@ -6,9 +6,11 @@ interface Props {
   onClose: () => void;
   children: ReactNode;
   footer?: ReactNode;
+  /** Lớp CSS thêm cho khung hộp thoại (VD: modal--wide) */
+  className?: string;
 }
 
-export default function Modal({ title, onClose, children, footer }: Props) {
+export default function Modal({ title, onClose, children, footer, className }: Props) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     document.addEventListener("keydown", onKey);
@@ -25,7 +27,7 @@ export default function Modal({ title, onClose, children, footer }: Props) {
       className="modal-backdrop"
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="modal" role="dialog" aria-modal="true" aria-label={title}>
+      <div className={`modal${className ? ` ${className}` : ""}`} role="dialog" aria-modal="true" aria-label={title}>
         <div className="modal-top">
           <h3 className="modal-title">{title}</h3>
           <button

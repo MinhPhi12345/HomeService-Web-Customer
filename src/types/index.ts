@@ -61,6 +61,37 @@ export interface ServiceCategory {
   unit: string;
   iconUrl: string | null;
   isActive: boolean;
+  /** SRS v1.8 – số lượng mỗi đơn (min == max: cố định, ẩn ô số lượng) */
+  minQuantity?: number;
+  maxQuantity?: number;
+  quantityLabel?: string | null;
+  quantityHint?: string | null;
+  /** Thời lượng ước tính cho mỗi đơn vị (phút) – dùng xếp lịch Tasker */
+  minutesPerUnit?: number;
+  /** Khách phải liệt kê từng hạng mục (số dòng = số lượng) */
+  requiresItemList?: boolean;
+  /** Chi tiết dịch vụ – mỗi dòng một ý */
+  includes?: string | null;
+  excludes?: string | null;
+  customerPrepares?: string | null;
+  notes?: string | null;
+}
+
+/** SRS v1.8 – hạng mục khách ghi khi đặt (Sửa điện nước) */
+export interface BookingItemDto {
+  itemNo: number;
+  description: string;
+}
+
+/** 0 = ảnh lúc bắt đầu, 1 = ảnh lúc hoàn thành */
+export type BookingPhotoStage = 0 | 1;
+
+export interface BookingPhotoDto {
+  stage: BookingPhotoStage;
+  itemNo: number | null;
+  url: string;
+  note: string | null;
+  createdAt: string;
 }
 
 export interface CreateBookingRequest {
@@ -77,6 +108,8 @@ export interface CreateBookingRequest {
   contactPhone?: string | null;
   /** FR-32 – mã giảm giá (chỉ đơn trả trước) */
   voucherCode?: string | null;
+  /** SRS v1.8 – danh sách hạng mục (bắt buộc khi dịch vụ requiresItemList) */
+  items?: string[] | null;
 }
 
 export interface BookingResponse {
@@ -127,6 +160,12 @@ export interface BookingResponse {
   nextSearchAt?: string | null;
   searchStopsAt?: string | null;
   searchNowAvailableAt?: string | null;
+  /** SRS v1.8 – thời lượng ước tính, đơn vị dịch vụ, hạng mục và ảnh trước/sau */
+  estimatedMinutes?: number;
+  serviceUnit?: string;
+  requiresItemList?: boolean;
+  items?: BookingItemDto[];
+  photos?: BookingPhotoDto[];
 }
 
 export interface CancellationFeeResponse {
@@ -301,4 +340,37 @@ export interface MyVoucher {
   source: number; // 0 chương trình, 1 chào mừng, 2 thân thiết, 3 xin lỗi
   isGift: boolean;
   remainingUses: number;
+}
+
+/* ---------- US48 (SRS v1.8) – tài khoản bị khóa & yêu cầu mở khóa ---------- */
+
+/** 0 Chờ xử lý · 1 Đã chấp nhận · 2 Đã từ chối */
+export type AppealStatus = 0 | 1 | 2;
+
+export interface AppealHistoryItem {
+  id: number;
+  status: AppealStatus;
+  createdAt: string;
+  resolvedAt: string | null;
+  adminNote: string | null;
+}
+
+export interface AppealContext {
+  fullName: string;
+  maskedEmail: string;
+  lockReason: number | null;
+  lockReasonText: string;
+  lockDetail: string | null;
+  lockedAt: string | null;
+  canSubmit: boolean;
+  blockedMessage: string | null;
+  remainingAppeals: number;
+  nextAppealAt: string | null;
+  history: AppealHistoryItem[];
+}
+
+export interface AppealSession {
+  token: string;
+  expiresAt: string;
+  context: AppealContext;
 }

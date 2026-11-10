@@ -78,6 +78,8 @@ export default function OrderActions({
     }
     if (b.quantity) q.set("quantity", String(b.quantity));
     if (b.note) q.set("note", b.note);
+    // SRS v1.8 – đặt lại giữ nguyên danh sách hạng mục
+    b.items?.forEach((it) => q.append("item", it.description));
     navigate(`/booking/new?${q.toString()}`);
   };
 

@@ -145,6 +145,7 @@ export const DISPUTE_REASONS = [
   "Làm hư hỏng tài sản",
   "Thái độ không phù hợp",
   "Khác",
+  "Tasker bị khóa tài khoản khi đang làm",
 ];
 export const DISPUTE_RESOLUTIONS = [
   "Bác khiếu nại – giải ngân đủ",

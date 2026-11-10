@@ -1548,3 +1548,32 @@
     overflow-wrap: anywhere;
   }
 }
+
+/* SRS v1.8 – nút ⓘ chi tiết dịch vụ trên thẻ dịch vụ */
+.svc-cards > .svc-card-reveal {
+  position: relative;
+}
+.svc-card-info {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 1;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink-soft);
+  display: grid;
+  place-items: center;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.svc-card-info:hover,
+.svc-card-info:focus-visible {
+  background: var(--primary-soft);
+  border-color: transparent;
+  color: var(--primary-dark);
+}
+.qb-fixed {
+  font-weight: 700;
+}

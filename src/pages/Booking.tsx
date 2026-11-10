@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   CalendarDays,
   Check,
+  ClipboardList,
   Clock,
   CreditCard,
   Crosshair,
@@ -25,6 +26,7 @@ import {
 import AppShell from "../components/AppShell";
 import MapView, { type LatLng } from "../components/MapView";
 import ServiceBadge from "../components/ServiceBadge";
+import ServiceDetailDialog from "../components/ServiceDetailDialog";
 import { useServices } from "../hooks/useServices";
 import { bookingService, voucherService } from "../services/bookingService";
 import { VoucherCard } from "../components/MyVouchers";
@@ -35,6 +37,8 @@ import { getErrorMessage } from "../services/api";
 import { BookingStatus, PaymentMethod, type MyVoucher, type ProfileResponse, type VoucherCheckResponse } from "../types";
 import { formatPhone, formatVND } from "../utils/format";
 import { validatePhone } from "../utils/validators";
+import { clampQty, durationText, estimateMinutes, quantityLabel, qtyRange } from "../utils/service";
+import type { ServiceCategory } from "../types";
 
 const DEFAULT_CENTER: LatLng = { lat: 10.7769, lng: 106.7009 }; // Quận 1, TP.HCM
 const TIMES = ["07:00", "08:00", "09:00", "10:00", "13:00", "14:00", "15:00", "16:00", "18:00"];
@@ -55,7 +59,22 @@ const toDate = (date: string, time: string) => {
   return new Date(y, m - 1, d, hh, mm);
 };
 
-type Errors = Partial<Record<"service" | "time" | "address" | "pin" | "phone" | "note" | "present", string>>;
+type Errors = Partial<Record<"service" | "items" | "time" | "address" | "pin" | "phone" | "note" | "present", string>>;
+
+const ITEM_MIN = 3;
+const ITEM_MAX = 200;
+const ITEM_EXAMPLES = [
+  "VD: Thay vòi rửa chén bị rỉ nước",
+  "VD: Ổ cắm phòng ngủ không có điện",
+  "VD: Bồn cầu xả nước yếu",
+  "VD: Lắp thêm 1 bóng đèn ban công",
+  "VD: Ống nước dưới bồn rửa bị rò",
+];
+
+/** Số lượng mặc định khi chọn dịch vụ: theo giờ gợi ý 2 giờ, còn lại lấy mức tối thiểu */
+const defaultQty = (s: ServiceCategory) => (s.unit === "giờ" ? clampQty(2, s) : qtyRange(s).min);
+const fitItems = (cur: string[], n: number) =>
+  cur.length === n ? cur : cur.length > n ? cur.slice(0, n) : [...cur, ...Array<string>(n - cur.length).fill("")];
 
 export default function Booking() {
   const navigate = useNavigate();
@@ -64,10 +83,8 @@ export default function Booking() {
 
   // ---- Dịch vụ & số lượng
   const [serviceId, setServiceId] = useState<number | null>(Number(params.get("serviceId")) || null);
-  const [quantity, setQuantity] = useState(() => {
-    const q = Number(params.get("quantity"));
-    return q >= 1 && q <= 12 ? q : 2;
-  });
+  const [quantity, setQuantity] = useState(2);
+  const qtyParam = useRef(Number(params.get("quantity")) || 0);
   useEffect(() => {
     if (services?.length && !services.some((s) => s.id === serviceId))
       setServiceId((services.find((s) => s.unit === "giờ") ?? services[0]).id);
@@ -75,6 +92,31 @@ export default function Booking() {
   const service = services?.find((s) => s.id === serviceId) ?? null;
   const total = service ? service.basePrice * quantity : 0;
   const unit = service?.unit ?? "giờ";
+  const range = qtyRange(service);
+  const needItems = !!service?.requiresItemList;
+  const minutes = estimateMinutes(service, quantity);
+  const [detailOf, setDetailOf] = useState<ServiceCategory | null>(null);
+
+  // SRS v1.8 – đổi dịch vụ: đưa số lượng về giới hạn của dịch vụ đó (lần đầu dùng ?quantity= nếu có)
+  useEffect(() => {
+    if (!service) return;
+    const q = qtyParam.current;
+    qtyParam.current = 0;
+    setQuantity(q ? clampQty(q, service) : defaultQty(service));
+  }, [service?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ---- Hạng mục (dịch vụ yêu cầu liệt kê): số dòng = số lượng
+  const [items, setItems] = useState<string[]>(() => params.getAll("item").slice(0, 50));
+  useEffect(() => {
+    if (needItems) setItems((cur) => fitItems(cur, quantity));
+  }, [needItems, quantity]);
+  const [itemsTouched, setItemsTouched] = useState(false);
+  const itemBad = (x: string) => x.trim().length < ITEM_MIN || x.trim().length > ITEM_MAX;
+  const removeItem = (i: number) => {
+    if (quantity <= range.min) return;
+    setItems((cur) => cur.filter((_, k) => k !== i));
+    setQuantity((q) => q - 1);
+  };
 
   // ---- Thời gian
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(new Date(), i)), []);
@@ -265,8 +307,8 @@ export default function Booking() {
   }, [cashAllowed, method]);
 
   const endText = () => {
-    if (unit !== "giờ") return "";
-    const e = new Date(scheduled.getTime() + quantity * 3600_000);
+    if (!service) return "";
+    const e = new Date(scheduled.getTime() + minutes * 60_000);
     return `–${pad(e.getHours())}:${pad(e.getMinutes())}`;
   };
   const dayText = () => {
@@ -285,8 +327,17 @@ export default function Booking() {
     e.preventDefault();
     const addr = address.trim();
     const t = scheduled.getTime();
+    const itemList = items.slice(0, quantity).map((x) => x.trim());
+    setItemsTouched(true);
     const next: Errors = {
       service: service ? "" : "Vui lòng chọn dịch vụ.",
+      items: !needItems
+        ? ""
+        : itemList.length < quantity || itemList.some((x) => !x)
+          ? `Vui lòng ghi rõ ${quantity} hạng mục cần làm (mỗi ô một hạng mục).`
+          : itemList.some((x) => x.length < ITEM_MIN || x.length > ITEM_MAX)
+            ? `Mỗi hạng mục cần mô tả từ ${ITEM_MIN} đến ${ITEM_MAX} ký tự.`
+            : "",
       time:
         t < Date.now() + 3600_000
           ? "Giờ hẹn phải sau thời điểm hiện tại ít nhất 1 giờ."
@@ -318,6 +369,7 @@ export default function Booking() {
         longitude: pin.lng,
         note: note.trim() || null,
         quantity,
+        items: needItems ? itemList : null,
         paymentMethod: method,
         customerPresent: method === PaymentMethod.Cash ? present : false,
         contactPhone: phone,
@@ -412,10 +464,9 @@ export default function Booking() {
               </div>
             ) : (
               <div className="svc-grid" role="radiogroup" aria-label="Dịch vụ">
-                {services.map((s) => {
-                  return (
+                {services.map((s) => (
+                  <div key={s.id} className="svc-opt-wrap">
                     <button
-                      key={s.id}
                       type="button"
                       role="radio"
                       aria-checked={s.id === serviceId}
@@ -431,28 +482,108 @@ export default function Booking() {
                       </span>
                       {s.id === serviceId && <Check className="svc-check" size={18} strokeWidth={3} />}
                     </button>
-                  );
-                })}
+                    <button
+                      type="button"
+                      className="svc-info"
+                      aria-label={`Chi tiết dịch vụ ${s.name}`}
+                      title="Chi tiết dịch vụ"
+                      onClick={() => setDetailOf(s)}
+                    >
+                      <Info size={16} />
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
-            {service?.description && <p className="hint bk-desc">{service.description}</p>}
+            {service && (
+              <p className="hint bk-desc">
+                {service.description}{" "}
+                <button type="button" className="link bk-detail-link" onClick={() => setDetailOf(service)}>
+                  <Info size={14} /> Xem chi tiết dịch vụ
+                </button>
+              </p>
+            )}
             <div className="bk-qty">
               <div>
-                <b>Số {unit}</b>
-                <span className="hint">Tối đa 12 {unit} cho mỗi đơn</span>
+                <b>{range.fixed ? "Thời lượng" : quantityLabel(service)}</b>
+                <span className="hint">
+                  {range.fixed
+                    ? `Mỗi đơn ${range.min} ${unit}${minutes ? `, khoảng ${durationText(minutes)}` : ""}`
+                    : service?.quantityHint || `Từ ${range.min} đến ${range.max} ${unit} cho mỗi đơn`}
+                </span>
+                {!range.fixed && unit !== "giờ" && service && (
+                  <span className="hint bk-dur">
+                    <Clock size={13} /> Thời gian làm dự kiến khoảng {durationText(minutes)}
+                  </span>
+                )}
               </div>
-              <div className="qty">
-                <button type="button" aria-label="Giảm" disabled={quantity <= 1} onClick={() => setQuantity((q) => q - 1)}>
-                  <Minus size={16} />
-                </button>
-                <output aria-live="polite">
-                  {quantity} {unit}
-                </output>
-                <button type="button" aria-label="Tăng" disabled={quantity >= 12} onClick={() => setQuantity((q) => q + 1)}>
-                  <Plus size={16} />
-                </button>
-              </div>
+              {range.fixed ? (
+                <span className="bk-fixed">
+                  {range.min} {unit}
+                </span>
+              ) : (
+                <div className="qty">
+                  <button type="button" aria-label="Giảm" disabled={quantity <= range.min} onClick={() => setQuantity((q) => q - 1)}>
+                    <Minus size={16} />
+                  </button>
+                  <output aria-live="polite">
+                    {quantity} {unit}
+                  </output>
+                  <button type="button" aria-label="Tăng" disabled={quantity >= range.max} onClick={() => setQuantity((q) => q + 1)}>
+                    <Plus size={16} />
+                  </button>
+                </div>
+              )}
             </div>
+
+            {needItems && (
+              <div className="bk-items">
+                <div className="bk-items-head">
+                  <ClipboardList size={17} />
+                  <div>
+                    <b>Hạng mục cần làm</b>
+                    <span className="hint">
+                      Ghi mỗi ô một hạng mục. Tasker sẽ chụp ảnh trước và sau theo từng hạng mục để bạn đối chiếu.
+                    </span>
+                  </div>
+                </div>
+                <ol className="bk-item-list">
+                  {items.slice(0, quantity).map((x, i) => {
+                    const bad = itemsTouched && itemBad(x);
+                    return (
+                      <li key={i}>
+                        <span className="bk-item-no">{i + 1}</span>
+                        <input
+                          type="text"
+                          className="input"
+                          maxLength={ITEM_MAX}
+                          aria-label={`Hạng mục ${i + 1}`}
+                          placeholder={ITEM_EXAMPLES[i % ITEM_EXAMPLES.length]}
+                          value={x}
+                          aria-invalid={bad}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setItems((cur) => cur.map((c, k) => (k === i ? v : c)));
+                            setErrors((er) => ({ ...er, items: undefined }));
+                          }}
+                        />
+                        {quantity > range.min && (
+                          <button type="button" className="icon-btn" aria-label={`Xóa hạng mục ${i + 1}`} onClick={() => removeItem(i)}>
+                            <X size={16} />
+                          </button>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ol>
+                {quantity < range.max && (
+                  <button type="button" className="chip chip--sm bk-item-add" onClick={() => setQuantity((q) => q + 1)}>
+                    <Plus size={14} /> Thêm hạng mục
+                  </button>
+                )}
+                {errors.items && <span className="field-error">{errors.items}</span>}
+              </div>
+            )}
           </section>
 
           {/* 2. Thời gian */}
@@ -827,6 +958,12 @@ export default function Booking() {
                 {quantity} {unit}
               </b>
             </div>
+            {service && (
+              <div className="kv">
+                <span>Thời lượng dự kiến</span>
+                <b>{durationText(minutes)}</b>
+              </div>
+            )}
             <div className="kv">
               <span>Địa chỉ</span>
               <b className="sum-addr">{address.trim() || "Chưa chọn"}</b>
@@ -877,6 +1014,13 @@ export default function Booking() {
           </div>
         </aside>
       </form>
+      {detailOf && (
+        <ServiceDetailDialog
+          service={detailOf}
+          onClose={() => setDetailOf(null)}
+          onChoose={detailOf.id === serviceId ? undefined : () => setServiceId(detailOf.id)}
+        />
+      )}
     </AppShell>
   );
 }

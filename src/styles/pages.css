@@ -1272,3 +1272,340 @@ ul.noti-list {
   .voucher-action { width: 100%; }
   .voucher-action .btn { width: 100%; justify-content: center; }
 }
+
+/* SRS v1.8 – nút ⓘ chi tiết dịch vụ, số lượng theo dịch vụ, danh sách hạng mục */
+.svc-opt-wrap {
+  position: relative;
+  display: flex;
+}
+.svc-opt-wrap > .svc-opt {
+  flex: 1;
+  padding-right: 40px;
+}
+.svc-info {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 0;
+  background: transparent;
+  color: var(--ink-soft);
+  display: grid;
+  place-items: center;
+}
+.svc-info:hover,
+.svc-info:focus-visible {
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+}
+.bk-detail-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13.5px;
+  vertical-align: baseline;
+}
+.bk-dur {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 2px;
+}
+.bk-fixed {
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: var(--bg);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.bk-items {
+  margin-top: 16px;
+  padding: 14px;
+  border-radius: 16px;
+  background: var(--bg);
+}
+.bk-items-head {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+.bk-items-head > svg {
+  color: var(--primary-dark);
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+.bk-items-head b {
+  display: block;
+}
+.bk-item-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.bk-item-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.bk-item-list .input {
+  flex: 1;
+  min-width: 0;
+  background: var(--surface);
+}
+.bk-item-no {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--primary-soft);
+  color: var(--primary-deep);
+  font-size: 13px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.bk-item-add {
+  margin-top: 10px;
+}
+
+/* Hộp thoại chi tiết dịch vụ */
+.modal--svc {
+  width: min(560px, 100%);
+}
+.sd-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.sd-head b {
+  display: block;
+  font-size: 17px;
+}
+.sd-head span {
+  color: var(--ink-soft);
+  font-size: 13.5px;
+}
+.sd-desc {
+  color: var(--ink-soft);
+  line-height: 1.55;
+  margin: 0;
+}
+.sd-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.sd-facts > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--bg);
+}
+.sd-facts svg {
+  color: var(--primary-dark);
+  margin-bottom: 2px;
+}
+.sd-facts span {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+.sd-facts b {
+  font-size: 13.5px;
+  line-height: 1.35;
+}
+.sd-hint {
+  margin: -4px 0 0;
+}
+.sd-items-note {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--info-soft);
+  color: #1f5aa8;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+.sd-items-note svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.sd-sec h4 {
+  font-size: 14.5px;
+  font-weight: 700;
+  margin: 2px 0 6px;
+}
+.sd-sec ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sd-sec li {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  line-height: 1.45;
+}
+.sd-sec li svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.sd-sec--ok li svg {
+  color: var(--success);
+}
+.sd-sec--no li svg {
+  color: var(--danger);
+}
+.sd-sec--prep li svg {
+  color: var(--accent);
+}
+.sd-sec--note li svg {
+  color: var(--info);
+}
+@media (max-width: 520px) {
+  .sd-facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .sd-facts > div {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+  .sd-facts span {
+    flex: 1;
+  }
+}
+
+/* SRS v1.8 – hạng mục của đơn & ảnh trước/sau theo hạng mục */
+.dt-items {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dt-items li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  line-height: 1.45;
+}
+.pc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.pc-item + .pc-item {
+  padding-top: 16px;
+  border-top: 1px dashed var(--line);
+}
+.pc-title {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.pc-no {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--primary-soft);
+  color: var(--primary-deep);
+  font-size: 12.5px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.pc-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.pc-col {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pc-tag {
+  align-self: flex-start;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+.pc-tag--after {
+  background: var(--success-soft);
+  color: var(--success);
+}
+.pc-thumbs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+.pc-thumbs img,
+.pc-empty {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  display: block;
+}
+.pc-empty {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 4px;
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.qty output {
+  white-space: nowrap;
+  padding: 0 6px;
+}
+.bk-items .field-error {
+  display: block;
+  margin-top: 8px;
+}
+.bk-item-list .input[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+.bk-item-add {
+  display: inline-flex;
+}
+@media (max-width: 760px) {
+  .bk-qty {
+    flex-wrap: wrap;
+  }
+  .bk-qty > div:first-child {
+    flex: 1 1 100%;
+  }
+  .bk-qty > .qty,
+  .bk-qty > .bk-fixed {
+    margin-left: auto;
+  }
+  .svc-opt-wrap > .svc-opt {
+    padding-right: 12px;
+    padding-bottom: 36px;
+  }
+}

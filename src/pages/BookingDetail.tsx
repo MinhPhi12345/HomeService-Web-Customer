@@ -13,6 +13,8 @@ import { Toast } from "../components/Modal";
 import ServiceBadge from "../components/ServiceBadge";
 import { useServiceIcons } from "../components/useServiceIcons";
 import { mediaUrl } from "../utils/media";
+import BookingPhotoCompare from "../components/BookingPhotoCompare";
+import { durationText } from "../utils/service";
 import { useNow } from "../hooks/useNow";
 import { bookingService, disputeService, reviewService } from "../services/bookingService";
 import { getErrorMessage } from "../services/api";
@@ -194,10 +196,13 @@ export default function BookingDetail() {
   const home = b.latitude != null && b.longitude != null ? { lat: b.latitude, lng: b.longitude } : null;
   const phone = b.contactPhone ?? b.customerPhone;
 
+  const items = b.items ?? [];
+  const photos = b.photos ?? [];
   const rows: [string, string][] = [
     ["Dịch vụ", b.serviceCategoryName],
-    ...(b.quantity ? ([["Số lượng", String(b.quantity)]] as [string, string][]) : []),
+    ...(b.quantity ? ([["Số lượng", `${b.quantity}${b.serviceUnit ? ` ${b.serviceUnit}` : ""}`]] as [string, string][]) : []),
     ["Giờ hẹn", formatDateTime(b.scheduledTime)],
+    ...(b.estimatedMinutes ? ([["Thời lượng dự kiến", durationText(b.estimatedMinutes)]] as [string, string][]) : []),
     ["Địa chỉ", b.address],
     ...(phone ? ([["SĐT liên hệ", formatPhone(phone)]] as [string, string][]) : []),
     ...(b.note ? ([["Ghi chú", b.note]] as [string, string][]) : []),
@@ -294,7 +299,26 @@ export default function BookingDetail() {
             ))}
           </section>
 
-          {(b.checkInPhotoUrl || b.checkOutPhotoUrl) && (
+          {items.length > 0 && photos.length === 0 && (
+            <section className="panel">
+              <h2 className="panel-title">Hạng mục cần làm ({items.length})</h2>
+              <ol className="dt-items">
+                {items.map((it) => (
+                  <li key={it.itemNo}>
+                    <span className="pc-no">{it.itemNo}</span>
+                    <span>{it.description}</span>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
+
+          {photos.length > 0 ? (
+            <section className="panel">
+              <h2 className="panel-title">{items.length > 0 ? `Hạng mục & ảnh trước / sau (${items.length})` : "Ảnh trước và sau khi làm"}</h2>
+              <BookingPhotoCompare items={items} photos={photos} />
+            </section>
+          ) : (b.checkInPhotoUrl || b.checkOutPhotoUrl) && (
             <section className="panel">
               <h2 className="panel-title">Ảnh trước và sau khi làm</h2>
               <div className="photo-pair">

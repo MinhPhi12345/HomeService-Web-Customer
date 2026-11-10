@@ -10,6 +10,7 @@ import {
   ChevronDown,
   Download,
   Globe,
+  Info,
   LayoutDashboard,
   MapPinned,
   Minus,
@@ -27,6 +28,8 @@ import Reveal from "../components/Reveal";
 import { DownloadButton, DownloadQr, InstallHelp } from "../components/AppDownload";
 import { iconForService } from "../components/ServiceIcon";
 import ServiceBadge from "../components/ServiceBadge";
+import ServiceDetailDialog from "../components/ServiceDetailDialog";
+import { clampQty, quantityLabel, qtyRange } from "../utils/service";
 import { useServices } from "../hooks/useServices";
 import { useAuth } from "../context/AuthContext";
 import { formatVND } from "../utils/format";
@@ -221,6 +224,12 @@ function QuickBook({ services, error, reload }: ReturnType<typeof useServices>) 
   }, [services, id]);
 
   const svc = services?.find((s) => s.id === id);
+  const range = qtyRange(svc);
+
+  // SRS v1.8 – số lượng theo giới hạn của từng dịch vụ
+  useEffect(() => {
+    if (svc) setQty(svc.unit === "giờ" ? clampQty(2, svc) : qtyRange(svc).min);
+  }, [svc?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="qb">
@@ -261,16 +270,22 @@ function QuickBook({ services, error, reload }: ReturnType<typeof useServices>) 
         </div>
       )}
       <div className="qb-qty">
-        <span>Số {svc?.unit ?? "giờ"}</span>
-        <div className="qb-stepper">
-          <button type="button" aria-label="Giảm" disabled={qty <= 1} onClick={() => setQty((q) => q - 1)}>
-            <Minus size={16} />
-          </button>
-          <output aria-live="polite">{qty}</output>
-          <button type="button" aria-label="Tăng" disabled={qty >= 12} onClick={() => setQty((q) => q + 1)}>
-            <Plus size={16} />
-          </button>
-        </div>
+        <span>{range.fixed ? "Mỗi đơn" : quantityLabel(svc)}</span>
+        {range.fixed ? (
+          <b className="qb-fixed">
+            {range.min} {svc?.unit}
+          </b>
+        ) : (
+          <div className="qb-stepper">
+            <button type="button" aria-label="Giảm" disabled={qty <= range.min} onClick={() => setQty((q) => q - 1)}>
+              <Minus size={16} />
+            </button>
+            <output aria-live="polite">{qty}</output>
+            <button type="button" aria-label="Tăng" disabled={qty >= range.max} onClick={() => setQty((q) => q + 1)}>
+              <Plus size={16} />
+            </button>
+          </div>
+        )}
       </div>
       <div className="qb-total">
         <span>Tạm tính</span>
@@ -293,8 +308,10 @@ function QuickBook({ services, error, reload }: ReturnType<typeof useServices>) 
 export default function Landing() {
   const { user } = useAuth();
   const { hash } = useLocation();
+  const navigate = useNavigate();
   const svc = useServices();
   const { services, error, reload } = svc;
+  const [detailOf, setDetailOf] = useState<ServiceCategory | null>(null);
 
   useEffect(() => {
     if (!hash) return;
@@ -398,7 +415,16 @@ export default function Landing() {
               <div className="svc-cards">
                 {(services ?? Array.from({ length: 4 }, () => null)).map((s, i) =>
                   s ? (
-                    <Reveal key={s.id} delay={(i % 4) * 80}>
+                    <Reveal key={s.id} delay={(i % 4) * 80} className="svc-card-reveal">
+                      <button
+                        type="button"
+                        className="svc-card-info"
+                        aria-label={`Chi tiết dịch vụ ${s.name}`}
+                        title="Chi tiết dịch vụ"
+                        onClick={() => setDetailOf(s)}
+                      >
+                        <Info size={17} />
+                      </button>
                       <Link to={`/booking/new?serviceId=${s.id}`} className="svc-card">
                         <ServiceBadge name={s.name} iconUrl={s.iconUrl} size={26} className="svc-icon svc-icon--lg" />
                         <h3>{s.name}</h3>
@@ -585,6 +611,14 @@ export default function Landing() {
         </section>
       </main>
       <Footer />
+      {detailOf && (
+        <ServiceDetailDialog
+          service={detailOf}
+          onClose={() => setDetailOf(null)}
+          chooseLabel="Đặt dịch vụ này"
+          onChoose={() => navigate(`/booking/new?serviceId=${detailOf.id}`)}
+        />
+      )}
     </>
   );
 }

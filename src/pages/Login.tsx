@@ -1,11 +1,13 @@
 // US02 – Đăng nhập (tài khoản Admin đăng nhập ở đây sẽ tự chuyển sang Web Admin)
 import { useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Lock, Mail } from "lucide-react";
+import { Eye, EyeOff, Lock, LockKeyhole, Mail } from "lucide-react";
 import AuthLayout from "../components/AuthLayout";
 import { useAuth } from "../context/AuthContext";
 import { emailNotVerified } from "../services/authService";
 import { getErrorMessage } from "../services/api";
+import { accountLocked, type AccountLocked } from "../services/appealService";
+import { formatDateTime } from "../utils/format";
 import { validateEmail } from "../utils/validators";
 
 export default function Login() {
@@ -19,6 +21,7 @@ export default function Login() {
   const [remember, setRemember] = useState(true);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [serverError, setServerError] = useState("");
+  const [locked, setLocked] = useState<AccountLocked | null>(null);
   const [loading, setLoading] = useState(false);
 
   const onSubmit = async (e: FormEvent) => {
@@ -29,6 +32,7 @@ export default function Login() {
     };
     setErrors(next);
     setServerError("");
+    setLocked(null);
     if (next.email || next.password) return;
     setLoading(true);
     try {
@@ -48,6 +52,12 @@ export default function Login() {
             notice: "Tài khoản chưa xác thực email. Nhập mã OTP để kích hoạt rồi đăng nhập.",
           },
         });
+        return;
+      }
+      // US48 – tài khoản bị khóa: hiện lý do và nút gửi yêu cầu mở khóa
+      const lock = accountLocked(err);
+      if (lock) {
+        setLocked(lock);
         return;
       }
       setServerError(
@@ -76,6 +86,38 @@ export default function Login() {
         {serverError && (
           <div className="notice notice--danger" role="alert">
             {serverError}
+          </div>
+        )}
+        {locked && (
+          <div className="lock-box" role="alert">
+            <div className="lock-box-head">
+              <LockKeyhole size={20} />
+              <b>Tài khoản của bạn đã bị khóa</b>
+            </div>
+            <dl>
+              {locked.lockReasonText && (
+                <>
+                  <dt>Lý do</dt>
+                  <dd>{locked.lockReasonText}</dd>
+                </>
+              )}
+              {locked.lockDetail && (
+                <>
+                  <dt>Chi tiết</dt>
+                  <dd>{locked.lockDetail}</dd>
+                </>
+              )}
+              {locked.lockedAt && (
+                <>
+                  <dt>Thời điểm</dt>
+                  <dd>{formatDateTime(locked.lockedAt)}</dd>
+                </>
+              )}
+            </dl>
+            <p>Nếu bạn cho rằng đây là nhầm lẫn hoặc đã khắc phục, hãy gửi yêu cầu mở khóa kèm giải trình.</p>
+            <Link to="/mo-khoa" state={{ email: locked.email }} className="btn btn-danger btn-block">
+              Gửi yêu cầu mở khóa
+            </Link>
           </div>
         )}
         <div className="field">

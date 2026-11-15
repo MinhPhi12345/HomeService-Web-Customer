@@ -1155,6 +1155,20 @@ ul.noti-list {
 .pub-profile-meta span { display: inline-flex; align-items: center; gap: 5px; }
 .reviews--profile { max-height: 360px; overflow-y: auto; margin-top: 8px; padding-right: 4px; }
 .reviews--profile li:first-child { border-top: none; padding-top: 0; }
+/* Tóm tắt điểm theo mức sao + lọc đánh giá trong hồ sơ */
+.rating-summary { display: flex; align-items: center; gap: 16px; margin: 8px 0 10px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; }
+.rating-summary-avg { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 64px; }
+.rating-summary-avg b { font-size: 28px; line-height: 1.1; }
+.rating-summary-bars { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+.rating-bar { display: grid; grid-template-columns: 26px 1fr 26px; align-items: center; gap: 8px; padding: 2px 4px; border-radius: 6px; background: none; border: 0; font-size: 12.5px; color: var(--ink-soft); cursor: pointer; }
+.rating-bar:hover:not(:disabled) { background: var(--primary-soft); }
+.rating-bar:disabled { cursor: default; }
+.rating-bar i { display: block; height: 7px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.rating-bar em { display: block; height: 100%; border-radius: 999px; background: #ffb938; }
+.rating-bar span:last-child { text-align: right; }
+.review-filter { margin: 4px 0 8px; gap: 6px; }
+.review-filter .chip { min-height: 32px; padding: 0 11px; font-size: 13px; }
+.review-more { margin-top: 10px; }
 .review-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .review-head .hint { margin-left: auto; font-size: 12px; }
 
@@ -1265,6 +1279,7 @@ ul.noti-list {
 .award-badge--r2 { background: #eef1f4; color: #55626b; }
 .award-badge--r3 { background: #fbe3d2; color: #9a4f1c; }
 .award-badge--r4 { background: var(--primary-soft); color: var(--primary-deep); }
+.award-badge--live { background: var(--primary-soft); color: var(--primary-deep); border: 1px dashed var(--primary); }
 .pub-profile-badges { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 0; }
 @media (max-width: 560px) {
   .voucher { flex-wrap: wrap; }

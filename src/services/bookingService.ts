@@ -8,6 +8,7 @@ import type {
   CreateReviewRequest,
   DisputeDetail,
   LocationResponse,
+  Paged,
   PaymentMethod,
   PaymentResponse,
   PublicProfile,
@@ -81,6 +82,13 @@ export const reviewService = {
 export const profileService = {
   get: (userId: number) =>
     api.get<PublicProfile>(`/public-profiles/${userId}`).then((r) => r.data),
+  /** Đánh giá người đó đã nhận, mới nhất trước; stars = 1–5 để lọc theo số sao. */
+  reviews: (userId: number, params: { stars?: number | null; page?: number; pageSize?: number }) =>
+    api
+      .get<Paged<ReviewItem>>(`/public-profiles/${userId}/reviews`, {
+        params: { stars: params.stars ?? undefined, page: params.page ?? 1, pageSize: params.pageSize ?? 5 },
+      })
+      .then((r) => r.data),
 };
 
 export const uploadService = {

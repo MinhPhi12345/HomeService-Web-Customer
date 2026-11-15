@@ -305,6 +305,7 @@
   inset: 0;
   width: 100%;
   height: 100%;
+  overflow: visible;
 }
 .ps-road {
   fill: none;
@@ -317,26 +318,34 @@
   stroke: var(--primary);
   stroke-width: 4;
   stroke-linecap: round;
-  stroke-dasharray: 260;
-  stroke-dashoffset: 260;
+  /* pathLength = 100 nên vạch nét luôn khớp đúng chiều dài đường, ở mọi kích thước khung */
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
   animation: draw 4s ease-in-out infinite;
 }
 @keyframes draw {
+  0%,
+  8% {
+    stroke-dashoffset: 100;
+  }
   60%,
+  92% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
   100% {
     stroke-dashoffset: 0;
+    opacity: 0;
   }
 }
+.ps-dot-halo {
+  fill: rgba(255, 138, 61, 0.25);
+}
+.ps-dot-ring {
+  fill: #fff;
+}
 .ps-dot {
-  position: absolute;
-  right: 6%;
-  top: 14%;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--accent);
-  border: 3px solid #fff;
-  box-shadow: 0 0 0 6px rgba(255, 138, 61, 0.25);
+  fill: var(--accent);
 }
 
 .float-card {
@@ -1411,9 +1420,9 @@
   .fc-3 {
     display: none;
   }
+  /* Đặt cạnh thẻ "Đơn sắp tới" như bản máy tính để không che đường đi và điểm đến trên bản đồ */
   .fc-2 {
-    top: auto;
-    bottom: 36px;
+    top: 128px;
     right: -4px;
   }
   .svc-cards {

@@ -300,8 +300,19 @@ export interface PublicProfile {
   workingArea: string | null;
   skills: string | null;
   reviews: ReviewItem[];
-  /** FR-31 – huy hiệu Tasker xuất sắc tháng (chỉ Tasker) */
+  /** FR-31 – huy hiệu Tasker xuất sắc tháng (chỉ Tasker), rank = hạng chính thức của tháng đã duyệt */
   badges?: AwardBadge[] | null;
+  /** Đang trong top N tạm tính của tháng này (không có số hạng vì còn thay đổi) */
+  currentTop?: CurrentTop | null;
+  /** Số đánh giá theo từng mức sao, từ 5★ xuống 1★ (reviews chỉ có 3 đánh giá mới nhất) */
+  ratingBreakdown?: { stars: number; count: number }[] | null;
+}
+
+export interface CurrentTop {
+  year: number;
+  month: number;
+  topCount: number;
+  label: string;
 }
 
 export interface AwardBadge {

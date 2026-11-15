@@ -150,11 +150,14 @@ function PhonePreview() {
             })}
           </div>
           <div className="ps-map">
-            <svg viewBox="0 0 200 90" preserveAspectRatio="none">
+            {/* Giữ đúng tỉ lệ (không kéo giãn) để nét đường đều nhau; điểm đến vẽ trong cùng SVG nên luôn nằm ở cuối đường */}
+            <svg viewBox="0 0 206 90" aria-hidden="true">
               <path className="ps-road" d="M10 70 C 50 70, 60 20, 100 30 S 160 70, 190 20" />
-              <path className="ps-route" d="M10 70 C 50 70, 60 20, 100 30 S 160 70, 190 20" />
+              <path className="ps-route" pathLength={100} d="M10 70 C 50 70, 60 20, 100 30 S 160 70, 190 20" />
+              <circle className="ps-dot-halo" cx="190" cy="20" r="10" />
+              <circle className="ps-dot-ring" cx="190" cy="20" r="6.5" />
+              <circle className="ps-dot" cx="190" cy="20" r="4" />
             </svg>
-            <span className="ps-dot" />
           </div>
         </div>
       </div>

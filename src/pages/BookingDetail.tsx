@@ -356,7 +356,10 @@ export default function BookingDetail() {
                 <div className="tasker-info">
                   <b>{b.taskerName}</b>
                   {b.taskerBadges && b.taskerBadges.length > 0 && (
-                    <span className="award-badge" title={b.taskerBadges.join(" · ")}>
+                    <span
+                      className={`award-badge award-badge--r${Math.min(Number(/^Hạng (\d+)/.exec(b.taskerBadges[0])?.[1] ?? 1), 4)}`}
+                      title={b.taskerBadges.join(" · ")}
+                    >
                       <Trophy size={13} /> {b.taskerBadges[0]}
                       {b.taskerBadges.length > 1 ? ` (+${b.taskerBadges.length - 1})` : ""}
                     </span>
